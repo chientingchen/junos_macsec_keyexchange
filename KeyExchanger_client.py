@@ -23,13 +23,12 @@ def main():
 
     logger('Remote management IP: ' + output.xpath('//lldp-remote-management-address')[0].text)
 
+    remote_addr = output.xpath('//lldp-remote-management-address')[0].text
 
     output = dev.cli('show lldp local-information', format='xml', warning=False)
 
     logger('Local management IP: ' + output.xpath('//lldp-local-management-address-address')[0].text)
     
-    
-    remote_addr = output.xpath('//lldp-remote-management-address')[0].text
     mgmt_addr = output.xpath('//lldp-local-management-address-address')[0].text
     
     HOST = remote_addr
