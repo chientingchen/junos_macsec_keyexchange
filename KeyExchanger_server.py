@@ -18,18 +18,11 @@ def main():
     logger('[LLDP information]:')
     #logger(dev.display_xml_rpc('show lldp neighbor interface ge-0/0/0', format='text'))
     output = dev.cli('show lldp neighbor interface xe-0/0/2', format='xml', warning=False)
-
-    #etree.tostring(output)
-
     logger('Remote management IP: ' + output.xpath('//lldp-remote-management-address')[0].text)
-
+    remote_addr = output.xpath('//lldp-remote-management-address')[0].text
 
     output = dev.cli('show lldp local-information', format='xml', warning=False)
-
     logger('Local management IP: ' + output.xpath('//lldp-local-management-address-address')[0].text)
-    
-    
-    remote_addr = output.xpath('//lldp-remote-management-address')[0].text
     mgmt_addr = output.xpath('//lldp-local-management-address-address')[0].text
     
     HOST = mgmt_addr
