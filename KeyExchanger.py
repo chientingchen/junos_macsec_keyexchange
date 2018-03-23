@@ -38,7 +38,7 @@ def main():
     print 'starting:...'
     s = socket(AF_INET, SOCK_DGRAM)
     s.bind((HOST, PORT))
-    with open(os.path.join('/var/tmp/','output_test.txt'), 'a') as f:
+    with open(os.path.join('/var/tmp/','output_server.txt'), 'a') as f:
         f.write('-----Connected-----\n')
         data1, address = s.recvfrom(1024)
         f.write(data1 + '\n')
