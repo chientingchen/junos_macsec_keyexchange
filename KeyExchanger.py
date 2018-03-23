@@ -16,7 +16,7 @@ def main():
 
     logger('[LLDP information]:')
     #logger(dev.display_xml_rpc('show lldp neighbor interface ge-0/0/0', format='text'))
-    output = dev.cli('show lldp neighbor interface xe-0/0/4', format='xml', warning=False)
+    output = dev.cli('show lldp neighbor interface xe-0/0/2', format='xml', warning=False)
 
     #etree.tostring(output)
 
