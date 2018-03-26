@@ -36,7 +36,7 @@ def main():
     
     print 'starting:...'
     s = socket(AF_INET, SOCK_DGRAM)
-    s.bind((HOST, PORT))
+    s.connect((HOST, PORT))
     with open(os.path.join('/var/tmp/','output_client.txt'), 'a') as f:
         s.sendall("The 1st message")
         data1 = s.recv(1024)
