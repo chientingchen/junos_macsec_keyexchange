@@ -5,8 +5,9 @@ from collections import namedtuple
 sys.path.insert(0, '/var/db/scripts/jet')
 import requests, json
 from jnpr.junos.utils.config import Config
+from datetime import datetime
 
-
+random.seed(datetime.now())
 tuple_CKN_CAK = namedtuple('tuple_CKN_CAK', ['ckn', 'cak'])
 tuple_Query_CKNCAK = namedtuple('tuple_Query_CKNCAK', ['LocalChassisID','LocalInt','RemoteChassisID','RemoteInt','CKN','CAK'])
 #If CAK & CKN are both None, server would return a CAK/CKN pair. 
@@ -88,14 +89,18 @@ def juniper_decrypt(crypt):
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
-def DeployConfig(dev, local_int, ckn, cak, conn_name=id_generator()):
-    with Config(dev, mode='private') as cu:
+def DeployConfig(dev, local_int, ckn, cak, conn_name = None):
+
+    if conn_name is None:
+        conn_name = id_generator()
+
+    with Config(dev) as cu:
         cu.load('set security macsec connectivity-association {0} security-mode static-cak'.format(conn_name), format='set')
         cu.load('set security macsec connectivity-association {0} pre-shared-key ckn {1}'.format(conn_name, ckn))
         cu.load('set security macsec connectivity-association {0} pre-shared-key cak {1}'.format(conn_name, cak))
         cu.load('set security macsec interfaces {0} connectivity-association {1}'.format(local_int,conn_name))
         cu.pdiff()
-    #    cu.commit()
+        cu.commit()
 
 
 def main():
@@ -231,10 +236,12 @@ def main():
                     DeployConfig(dev, query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'], dictLocalIntConn[query.LocalInt])
             else:
                 #there's not existing ckn & cak for this local int, create a new pair.
+                print 'dict_ServerResponse[\'ckn\']:'+dict_ServerResponse['ckn']
+                print 'dict_ServerResponse[\'cak\']:'+dict_ServerResponse['cak']
                 DeployConfig(dev, query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'])
 
 
-            print response.status_code, response.reason, response.text
+            #print response.status_code, response.reason, response.text
 
 def logger(strLog):
     with open(os.path.join('/var/tmp/','output.txt'), 'a') as target_config:
