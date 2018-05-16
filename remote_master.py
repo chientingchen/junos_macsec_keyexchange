@@ -1,6 +1,7 @@
-import abc, sys, os, subprocess, random
-sys.path.insert(0, '/var/db/scripts/jet')
-from flask import Flask, request, jsonify
+import abc, sys, os, subprocess, random, json
+_INCLUDE_PATH = '/var/db/scripts/jet'
+sys.path.insert(0, _INCLUDE_PATH)
+from flask import Flask, request, jsonify, render_template
 from config import DevConfig
 from jnpr.junos import Device
 from jnpr.junos.utils.config import Config
@@ -93,15 +94,32 @@ class MLSManager_pydblite(Interface_DBController):
         if flag_item_found == False:
             return '-1','-1'
 
+    def selectall(self):
+        return self.db
+
     def commit(self):
         self.db.commit();           
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder=os.path.join(_INCLUDE_PATH,'templates'), static_folder=os.path.join(_INCLUDE_PATH,'static'))
 app.config.from_object(DevConfig)
 
 @app.route('/')
 def index():
-    return 'Hello World!'
+    return render_template('index.html')
+
+@app.route('/ListCAKCKN', methods=['GET'])
+def ListCAKCKN():
+    db.open()
+    records = db.selectall()
+
+    list_record = []
+
+    for r in records:
+        print r
+        print r['leaf_ID']
+        list_record.append(r)
+
+    return json.dumps(list_record)
 
 @app.route('/QueryCAKCKN',methods=['POST'])
 def QueryCAKCKN():
