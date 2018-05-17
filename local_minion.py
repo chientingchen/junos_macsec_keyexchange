@@ -6,6 +6,7 @@ sys.path.insert(0, '/var/db/scripts/jet')
 import requests, json
 from jnpr.junos.utils.config import Config
 from datetime import datetime
+import jcs
 
 random.seed(datetime.now())
 tuple_CKN_CAK = namedtuple('tuple_CKN_CAK', ['ckn', 'cak'])
@@ -96,12 +97,44 @@ def DeployConfig(dev, local_int, ckn, cak, conn_name = None):
 
     with Config(dev) as cu:
         cu.load('set security macsec connectivity-association {0} security-mode static-cak'.format(conn_name), format='set')
-        cu.load('set security macsec connectivity-association {0} pre-shared-key ckn {1}'.format(conn_name, ckn))
-        cu.load('set security macsec connectivity-association {0} pre-shared-key cak {1}'.format(conn_name, cak))
-        cu.load('set security macsec interfaces {0} connectivity-association {1}'.format(local_int,conn_name))
+        cu.load('set security macsec connectivity-association {0} pre-shared-key ckn {1}'.format(conn_name, ckn), format='set')
+        cu.load('set security macsec connectivity-association {0} pre-shared-key cak {1}'.format(conn_name, cak), format='set')
+        cu.load('set security macsec interfaces {0} connectivity-association {1}'.format(local_int,conn_name), format='set')
         cu.pdiff()
         cu.commit()
 
+def DeployConfig_junos(local_int, ckn, cak, conn_name = None):
+
+    if conn_name is None:
+        conn_name = id_generator()
+
+    script = "system-check.py"
+    change_xml = """<security>
+                        <macsec>
+                            <connectivity-association>
+                                <name>{0}</name>
+                                <security-mode>static-cak</security-mode>
+                                <pre-shared-key>
+                                    <ckn>{1}</ckn>
+                                    <cak>{2}</cak>
+                                </pre-shared-key>
+                            </connectivity-association>
+                            <interfaces>
+                                <name>{3}</name>
+                                <connectivity-association>{0}</connectivity-association>
+                            </interfaces>
+                        </macsec>
+                    </security>""".format(conn_name, ckn, cak, local_int)
+    jcs.emit_change(change_xml, "change", "xml")
+
+    logger('conn_name:'+conn_name)
+    logger('ckn:' + ckn)
+    logger('cak:'+cak)
+    logger('local_int:'+local_int)
+
+    logger('--------------change_xml----------------')
+    logger(change_xml)
+    logger('--------------end of change_xml----------------')
 
 def main():
     with Device(
@@ -133,7 +166,10 @@ def main():
         for item in data.findall('security/macsec/interfaces'):
             #dict['xe-0/0/1'] = cal
             dictLocalIntConn[item.find('name').text] = item.find('connectivity-association').text
+            logger('put into dictLocalIntConn: ' + item.find('name').text + '|' + item.find('connectivity-association').text)
 
+        #make sure configuration is updated by user.
+        logger(etree.tostring(data, encoding='unicode'))
 
         #Get chassis ID of current device
         data = dev.rpc.get_chassis_mac_addresses()
@@ -160,8 +196,8 @@ def main():
         for item in data.findall('lldp-neighbor-information'):
             local_int = item.find('lldp-local-port-id').text
 
-            if local_int == 'fxp0' or local_int == 'em0':
-                #skip management port.
+            if local_int not in dictLocalIntConn:
+                #skip any other port.
                 continue
 
             remote_chassisID = item.find('lldp-remote-chassis-id').text
@@ -178,13 +214,23 @@ def main():
             #print remote_int
 
             #if local interface has already configured CAK/CKN, pull it out from dict
+            logger('before local_int:' + local_int)
             if local_int in dictLocalIntConn:
+                #We only care about the interfaces listed in MACsec configuration, ignore other interfaces.
                 conn = dictLocalIntConn[local_int]
-                ckn_cak = dictConnCKNCAK[conn]
-                query = tuple_Query_CKNCAK(Local_ChassisID, local_int, remote_chassisID, remote_int, ckn_cak.ckn, ckn_cak.cak)
+
+                if conn in dictConnCKNCAK:
+                    #If the interface pre-shared key is configured before, put it into query and ask server.
+                    ckn_cak = dictConnCKNCAK[conn]
+                    query = tuple_Query_CKNCAK(Local_ChassisID, local_int, remote_chassisID, remote_int, ckn_cak.ckn, ckn_cak.cak)
+                else:
+                    #If the interfcae haven't be configured before, ask server to return it.
+                    query = tuple_Query_CKNCAK(Local_ChassisID, local_int, remote_chassisID, remote_int, None, None)
             else:
+                logger('you should not be here.')
+            #else:
             #if local interface hasn't configured CAK/CKN, asking it from server.
-                query = tuple_Query_CKNCAK(Local_ChassisID, local_int, remote_chassisID, remote_int, None, None) 
+            #    query = tuple_Query_CKNCAK(Local_ChassisID, local_int, remote_chassisID, remote_int, None, None) 
             
             lstQueryCKNCAK.append(query)
 
@@ -224,22 +270,34 @@ def main():
 
             #Check existing ckn & cak match or not, if there's any.
             if query.LocalInt in dictLocalIntConn:
-                cur_CKNCAK = dictConnCKNCAK[dictLocalIntConn[query.LocalInt]]
-                print 'dict_ServerResponse[\'ckn\']:'+dict_ServerResponse['ckn']
-                print 'dict_ServerResponse[\'cak\']:'+dict_ServerResponse['cak']
-                print 'cur_CKNCAK.ckn:' + cur_CKNCAK.ckn
-                print 'cur_CKNCAK.cak:' + cur_CKNCAK.cak
-                print 'decrypt: ' + juniper_decrypt(cur_CKNCAK.cak)
+                if dictLocalIntConn[query.LocalInt] in dictConnCKNCAK:
+                    cur_CKNCAK = dictConnCKNCAK[dictLocalIntConn[query.LocalInt]]
+                    logger('dict_ServerResponse[\'ckn\']:'+dict_ServerResponse['ckn'])
+                    logger('dict_ServerResponse[\'cak\']:'+dict_ServerResponse['cak'])
+                    logger('cur_CKNCAK.ckn:' + cur_CKNCAK.ckn)
+                    logger('cur_CKNCAK.cak:' + cur_CKNCAK.cak)
+                    logger('decrypt: ' + juniper_decrypt(cur_CKNCAK.cak))
 
-                if dict_ServerResponse['ckn'] != cur_CKNCAK.ckn or dict_ServerResponse['cak'] != juniper_decrypt(cur_CKNCAK.cak):
-                    #Not match, redeploy the cak & ckn
-                    DeployConfig(dev, query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'], dictLocalIntConn[query.LocalInt])
+                    if dict_ServerResponse['ckn'] != cur_CKNCAK.ckn or dict_ServerResponse['cak'] != juniper_decrypt(cur_CKNCAK.cak):
+                        #Not match, redeploy the cak & ckn
+                        #DeployConfig(dev, query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'], dictLocalIntConn[query.LocalInt])
+                        DeployConfig_junos(query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'], dictLocalIntConn[query.LocalInt])
+                    else:
+                        #ckn & cak matched, do not reconfigured.
+                        pass
+                else:
+                    #if connectivity-association is not defined, deploy it.
+                    #DeployConfig(dev, query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'], dictLocalIntConn[query.LocalInt])
+                        DeployConfig_junos(query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'], dictLocalIntConn[query.LocalInt])
+
+
+            '''
             else:
                 #there's not existing ckn & cak for this local int, create a new pair.
-                print 'dict_ServerResponse[\'ckn\']:'+dict_ServerResponse['ckn']
-                print 'dict_ServerResponse[\'cak\']:'+dict_ServerResponse['cak']
+                logger('dict_ServerResponse[\'ckn\']:'+dict_ServerResponse['ckn'])
+                logger('dict_ServerResponse[\'cak\']:'+dict_ServerResponse['cak'])
                 DeployConfig(dev, query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'])
-
+            '''
 
             #print response.status_code, response.reason, response.text
 
