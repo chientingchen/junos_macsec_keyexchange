@@ -1,3 +1,10 @@
+'''
+Testing scenario:
+1. unsupported device/linecard -> TBD
+2. half configured configuration (without connection association)
+3. complete configuration, preshared key sync with server.
+4. complete configuration, preshared key not sync with server.
+'''
 import os, sys, random, string
 from jnpr.junos import Device
 from lxml import etree
@@ -7,85 +14,79 @@ import requests, json
 from jnpr.junos.utils.config import Config
 from datetime import datetime
 import jcs
+sys.path.insert(0, '/var/db/scripts/jet')
 
-random.seed(datetime.now())
 tuple_CKN_CAK = namedtuple('tuple_CKN_CAK', ['ckn', 'cak'])
-tuple_Query_CKNCAK = namedtuple('tuple_Query_CKNCAK', ['LocalChassisID','LocalInt','RemoteChassisID','RemoteInt','CKN','CAK'])
-#If CAK & CKN are both None, server would return a CAK/CKN pair. 
-#If CAK & CKN are both specified, server would also return latest CAK/CKN pair for this match.
+tuple_Query_CKNCAK = namedtuple('tuple_Query_CKNCAK', ['LocalChassisID','LocalInt','LocalHostname','RemoteChassisID','RemoteInt','RemoteHostname'])
+
 dictConnCKNCAK = {}
 dictLocalIntConn = {}
 Local_ChassisID = None
 lstQueryCKNCAK = []
+
 SERVER_IP = '172.27.169.123'
 SERVER_PORT = '8080'
 
+class Decryptor():
+    def __init__(self):
+        self.MAGIC = "$9$"
 
-#################################################################
-## globals
+        ###################################
+        ## letter families
 
-MAGIC = "$9$"
+        self.FAMILY = ["QzF3n6/9CAtpu0O", "B1IREhcSyrleKvMW8LXx", "7N-dVbwsY2g4oaJZGUDj", "iHkq.mPf5T"]
+        self.EXTRA = dict()
+        for x, item in enumerate(self.FAMILY):
+            for c in item:
+                self.EXTRA[c] = 3 - x
 
-###################################
-## letter families
+        ###################################
+        ## forward and reverse dictionaries
 
-FAMILY = ["QzF3n6/9CAtpu0O", "B1IREhcSyrleKvMW8LXx", "7N-dVbwsY2g4oaJZGUDj", "iHkq.mPf5T"]
-EXTRA = dict()
-for x, item in enumerate(FAMILY):
-    for c in item:
-        EXTRA[c] = 3 - x
+        self.NUM_ALPHA = [x for x in "".join(self.FAMILY)]
+        self.ALPHA_NUM = {self.NUM_ALPHA[x]: x for x in range(0, len(self.NUM_ALPHA))}
 
-###################################
-## forward and reverse dictionaries
+        ###################################
+        ## encoding moduli by position
 
-NUM_ALPHA = [x for x in "".join(FAMILY)]
-ALPHA_NUM = {NUM_ALPHA[x]: x for x in range(0, len(NUM_ALPHA))}
+        self.ENCODING = [[1, 4, 32], [1, 16, 32], [1, 8, 32], [1, 64], [1, 32], [1, 4, 16, 128], [1, 32, 64]]
 
-###################################
-## encoding moduli by position
+    def _nibble(self, cref, length):
+        nib = cref[0:length]
+        rest = cref[length:]
+        if len(nib) != length:
+            print "Ran out of characters: hit '%s', expecting %s chars" % (nib, length)
+            sys.exit(1)
+        return nib, rest
 
-ENCODING = [[1, 4, 32], [1, 16, 32], [1, 8, 32], [1, 64], [1, 32], [1, 4, 16, 128], [1, 32, 64]]
+    def _gap(self, c1, c2):
+        return (self.ALPHA_NUM[str(c2)] - self.ALPHA_NUM[str(c1)]) % (len(self.NUM_ALPHA)) - 1
 
+    def _gap_decode(self, gaps, dec):
+        num = 0
+        if len(gaps) != len(dec):
+            print "Nibble and decode size not the same!"
+            sys.exit(1)
+        for x in range(0, len(gaps)):
+            num += gaps[x] * dec[x]
+        return chr(num % 256)
 
-def _nibble(cref, length):
-    nib = cref[0:length]
-    rest = cref[length:]
-    if len(nib) != length:
-        print "Ran out of characters: hit '%s', expecting %s chars" % (nib, length)
-        sys.exit(1)
-    return nib, rest
-
-
-def _gap(c1, c2):
-    return (ALPHA_NUM[str(c2)] - ALPHA_NUM[str(c1)]) % (len(NUM_ALPHA)) - 1
-
-
-def _gap_decode(gaps, dec):
-    num = 0
-    if len(gaps) != len(dec):
-        print "Nibble and decode size not the same!"
-        sys.exit(1)
-    for x in range(0, len(gaps)):
-        num += gaps[x] * dec[x]
-    return chr(num % 256)
-
-
-def juniper_decrypt(crypt):
-    chars = crypt.split("$9$", 1)[1]
-    first, chars = _nibble(chars, 1)
-    toss, chars = _nibble(chars, EXTRA[first])
-    prev = first
-    decrypt = ""
-    while chars:
-        decode = ENCODING[len(decrypt) % len(ENCODING)]
-        nibble, chars = _nibble(chars, len(decode))
-        gaps = []
-        for i in nibble:
-            g = _gap(prev, i)
-            prev = i
-            gaps += [g]
-        decrypt += _gap_decode(gaps, decode)
-    return decrypt
+    def juniper_decrypt(self, crypt):
+        chars = crypt.split("$9$", 1)[1]
+        first, chars = self._nibble(chars, 1)
+        toss, chars = self._nibble(chars, self.EXTRA[first])
+        prev = first
+        decrypt = ""
+        while chars:
+            decode = self.ENCODING[len(decrypt) % len(self.ENCODING)]
+            nibble, chars = self._nibble(chars, len(decode))
+            gaps = []
+            for i in nibble:
+                g = self._gap(prev, i)
+                prev = i
+                gaps += [g]
+            decrypt += self._gap_decode(gaps, decode)
+        return decrypt
 
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
@@ -103,7 +104,7 @@ def DeployConfig(dev, local_int, ckn, cak, conn_name = None):
         cu.pdiff()
         cu.commit()
 
-def DeployConfig_junos(local_int, ckn, cak, conn_name = None):
+def DeployConfig_jcs(local_int, ckn, cak, conn_name = None):
 
     if conn_name is None:
         conn_name = id_generator()
@@ -127,20 +128,50 @@ def DeployConfig_junos(local_int, ckn, cak, conn_name = None):
                     </security>""".format(conn_name, ckn, cak, local_int)
     jcs.emit_change(change_xml, "change", "xml")
 
-    logger('conn_name:'+conn_name)
-    logger('ckn:' + ckn)
-    logger('cak:'+cak)
-    logger('local_int:'+local_int)
 
-    logger('--------------change_xml----------------')
-    logger(change_xml)
-    logger('--------------end of change_xml----------------')
+def rest_request(query):
+    headers = {
+        "content-type": "application/json"
+    }
+    data = {
+        "externalId": "801411",
+        "name": "RD Core",
+        "description": "Tenant create",
+        "subscriptionType": "MINIMAL",
+        "features": {
+            "capture": False,
+            "correspondence": True,
+            "vault": False
+        }
+    }
 
-def main():
-    with Device(
-        #host='172.27.169.123', user='lab', passwd='lab123'
-        ) as dev:
-        data = dev.rpc.get_config(
+    response = requests.post(
+        url="http://{0}:{1}/QueryCAKCKN".format(SERVER_IP,SERVER_PORT),
+        headers=headers,
+        data=json.dumps({
+                "LocalChassisID": query.LocalChassisID,
+                "LocalInt": query.LocalInt,
+                "LocalHostname": query.LocalHostname,
+                "RemoteChassisID": query.RemoteChassisID,
+                "RemoteInt": query.RemoteInt,
+                "RemoteHostname": query.RemoteHostname
+                }
+            )
+        )
+
+    return response
+
+
+class InfoCollector():
+    def __init__(self, dev):
+        self.dictConnCKNCAK = {}
+        self.dictLocalIntConn = {}
+        self.dev = dev
+        self.dev = dev.open()
+        pass
+
+    def getMACsec_conn_key(self):
+        data = self.dev.rpc.get_config(
             filter_xml=etree.XML('''
                <configuration>
                    <security>
@@ -159,147 +190,122 @@ def main():
 
             ckn_cak = tuple_CKN_CAK(ckn, cak)
 
-            dictConnCKNCAK[conn_name] = ckn_cak
+            self.dictConnCKNCAK[conn_name] = ckn_cak
 
+        #returning data collected to make this module easily to reuse.
+        return self.dictConnCKNCAK 
+
+    def getMACsec_interface_conn(self):
+
+        data = self.dev.rpc.get_config(
+            filter_xml=etree.XML('''
+               <configuration>
+                   <security>
+                       <macsec/>
+                   </security>
+               </configuration>
+               '''
+               )
+            )
 
         #get local interfaces which have macsec configured.
         for item in data.findall('security/macsec/interfaces'):
             #dict['xe-0/0/1'] = cal
-            dictLocalIntConn[item.find('name').text] = item.find('connectivity-association').text
-            logger('put into dictLocalIntConn: ' + item.find('name').text + '|' + item.find('connectivity-association').text)
+            self.dictLocalIntConn[item.find('name').text] = item.find('connectivity-association').text
 
-        #make sure configuration is updated by user.
-        logger(etree.tostring(data, encoding='unicode'))
+        #returning data collected to make this module easily to reuse.
+        return self.dictLocalIntConn
 
+    '''
+    def getLocalChassisID(self):
         #Get chassis ID of current device
-        data = dev.rpc.get_chassis_mac_addresses()
+        data = self.dev.rpc.get_chassis_mac_addresses()
         #print etree.tostring(data, encoding='unicode')
 
         if data.find('mac-address-information') is not None:
             #local device is MX series router
             for item in data.findall('mac-address-information'):
-                Local_ChassisID = item.find('private-base-address').text
+                self.Local_ChassisID = item.find('private-base-address').text
         else:
             #local device is EX series switch
             for item in data.findall('chassis-mac-addresses-edge-info/fpc-mac-address'):
-                Local_ChassisID = item.find('fpc-mac-base').text 
+                self.Local_ChassisID = item.find('fpc-mac-base').text 
+        return self.Local_ChassisID
+    '''
 
+    def get_local_id_hostname(self):
+        data = self.dev.rpc.get_lldp_local_info()        
+        Local_ChassisID = data.find('lldp-local-chassis-id').text
+        Local_Hostname = data.find('lldp-local-system-name').text
 
-        #Get following info from lldp:
-        #   local interface connecting neighbor device
-        #   neighbor chassis ID
-        #   neighbor interface
-        data = dev.rpc.get_lldp_neighbors_information();
+        return Local_ChassisID, Local_Hostname
+
+    def get_remote_ID_port_by_LLDP(self, local_int):
+
+        #Try to get following info from lldp:
+        #   neighbor hostname connected by local interface
+        #   neighbor chassis ID connected by local interface
+        #   neighbor interface connected with local interface
+
+        remote_chassisID = None
+        remote_int = None
+        remote_hostname = None
+
+        data = self.dev.rpc.get_lldp_interface_neighbors(interface_device=local_int);
         #print etree.tostring(data, encoding='unicode')
 
-        
         for item in data.findall('lldp-neighbor-information'):
-            local_int = item.find('lldp-local-port-id').text
-
-            if local_int not in dictLocalIntConn:
-                #skip any other port.
-                continue
-
             remote_chassisID = item.find('lldp-remote-chassis-id').text
+            remote_int = item.find('lldp-remote-port-description').text
+            remote_hostname = item.find('lldp-remote-system-name').text
 
-            if item.find('lldp-remote-port-description') is None:
-                #MX series router
-                remote_int = item.find('lldp-remote-port-id').text
-            else:
-                #EX series switch
-                remote_int = item.find('lldp-remote-port-description').text
+        return remote_chassisID, remote_int, remote_hostname
 
-            #print local_int
-            #print remote_chassisID
-            #print remote_int
+    def __del__(self):
+        self.dev.close()
 
-            #if local interface has already configured CAK/CKN, pull it out from dict
-            logger('before local_int:' + local_int)
-            if local_int in dictLocalIntConn:
-                #We only care about the interfaces listed in MACsec configuration, ignore other interfaces.
-                conn = dictLocalIntConn[local_int]
 
-                if conn in dictConnCKNCAK:
-                    #If the interface pre-shared key is configured before, put it into query and ask server.
-                    ckn_cak = dictConnCKNCAK[conn]
-                    query = tuple_Query_CKNCAK(Local_ChassisID, local_int, remote_chassisID, remote_int, ckn_cak.ckn, ckn_cak.cak)
-                else:
-                    #If the interfcae haven't be configured before, ask server to return it.
-                    query = tuple_Query_CKNCAK(Local_ChassisID, local_int, remote_chassisID, remote_int, None, None)
-            else:
-                logger('you should not be here.')
-            #else:
-            #if local interface hasn't configured CAK/CKN, asking it from server.
-            #    query = tuple_Query_CKNCAK(Local_ChassisID, local_int, remote_chassisID, remote_int, None, None) 
+def main():
+    dev = Device(
+    #host='172.27.169.123', user='lab', passwd='lab123'
+    )
+    #collecting MACsec info
+    info = InfoCollector(dev)
+    dictLocalIntConn = info.getMACsec_interface_conn()
+    dictConnCKNCAK = info.getMACsec_conn_key()
+
+    #collecting local info
+    Local_ChassisID, Local_Hostname = info.get_local_id_hostname()
+    
+    #compose query for interface which is half configured.
+    for local_int in info.dictLocalIntConn:
+        remote_chassisID, remote_int, remote_hostname = info.get_remote_ID_port_by_LLDP(local_int)
+
+        query = tuple_Query_CKNCAK(Local_ChassisID, local_int, Local_Hostname, remote_chassisID, remote_int, remote_hostname)
+
+        lstQueryCKNCAK.append(query)
+
+    #Query preshared key from server.
+    for query in lstQueryCKNCAK:
+        #Get responding ckn & cak
+        dict_ServerResponse = json.loads(rest_request(query).text)
+
+        #Check existing ckn & cak match or not, if there's any.
+        if dictLocalIntConn[query.LocalInt] in dictConnCKNCAK:
+
+            #Get current configured preshared key
+            cur_CKNCAK = dictConnCKNCAK[dictLocalIntConn[query.LocalInt]]
             
-            lstQueryCKNCAK.append(query)
-
-        #Query pre-shared key from server by chassis ID with interface name.
-        for query in lstQueryCKNCAK:
-            
-            headers = {
-                "content-type": "application/json"
-            }
-            data = {
-                "externalId": "801411",
-                "name": "RD Core",
-                "description": "Tenant create",
-                "subscriptionType": "MINIMAL",
-                "features": {
-                    "capture": False,
-                    "correspondence": True,
-                    "vault": False
-                }
-            }
-
-            response = requests.post(
-                url="http://{0}:{1}/QueryCAKCKN".format(SERVER_IP,SERVER_PORT),
-                headers=headers,
-                data=json.dumps({
-                    "LocalChassisID": query.LocalChassisID,
-                    "LocalInt": query.LocalInt,
-                    "RemoteChassisID": query.RemoteChassisID,
-                    "RemoteInt": query.RemoteInt,
-                    "CKN": query.CKN,
-                    "CAK": query.CAK
-                    }
-                )
-            )
-            #Get responding ckn & cak
-            dict_ServerResponse = json.loads(response.text)
-
-            #Check existing ckn & cak match or not, if there's any.
-            if query.LocalInt in dictLocalIntConn:
-                if dictLocalIntConn[query.LocalInt] in dictConnCKNCAK:
-                    cur_CKNCAK = dictConnCKNCAK[dictLocalIntConn[query.LocalInt]]
-                    logger('dict_ServerResponse[\'ckn\']:'+dict_ServerResponse['ckn'])
-                    logger('dict_ServerResponse[\'cak\']:'+dict_ServerResponse['cak'])
-                    logger('cur_CKNCAK.ckn:' + cur_CKNCAK.ckn)
-                    logger('cur_CKNCAK.cak:' + cur_CKNCAK.cak)
-                    logger('decrypt: ' + juniper_decrypt(cur_CKNCAK.cak))
-
-                    if dict_ServerResponse['ckn'] != cur_CKNCAK.ckn or dict_ServerResponse['cak'] != juniper_decrypt(cur_CKNCAK.cak):
-                        #Not match, redeploy the cak & ckn
-                        #DeployConfig(dev, query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'], dictLocalIntConn[query.LocalInt])
-                        DeployConfig_junos(query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'], dictLocalIntConn[query.LocalInt])
-                    else:
-                        #ckn & cak matched, do not reconfigured.
-                        pass
-                else:
-                    #if connectivity-association is not defined, deploy it.
-                    #DeployConfig(dev, query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'], dictLocalIntConn[query.LocalInt])
-                        DeployConfig_junos(query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'], dictLocalIntConn[query.LocalInt])
-
-
-            '''
+            if dict_ServerResponse['ckn'] != cur_CKNCAK.ckn or dict_ServerResponse['cak'] != Decryptor().juniper_decrypt(cur_CKNCAK.cak):
+                #ckn cak needs to be updated.
+                DeployConfig_jcs(query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'], dictLocalIntConn[query.LocalInt])
             else:
-                #there's not existing ckn & cak for this local int, create a new pair.
-                logger('dict_ServerResponse[\'ckn\']:'+dict_ServerResponse['ckn'])
-                logger('dict_ServerResponse[\'cak\']:'+dict_ServerResponse['cak'])
-                DeployConfig(dev, query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'])
-            '''
+                #ckn & cak matched, do not reconfigured.
+                pass
+        else:
+            #There's not exising pre-shared key, deploy it.
+            DeployConfig_jcs(query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'], dictLocalIntConn[query.LocalInt])
 
-            #print response.status_code, response.reason, response.text
 
 def logger(strLog):
     with open(os.path.join('/var/tmp/','output.txt'), 'a') as target_config:

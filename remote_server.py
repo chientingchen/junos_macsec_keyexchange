@@ -1,4 +1,4 @@
-import abc, sys, os, subprocess, random, json
+import abc, sys, os, subprocess, random, json, time
 _INCLUDE_PATH = '/var/db/scripts/jet'
 sys.path.insert(0, _INCLUDE_PATH)
 from flask import Flask, request, jsonify, render_template
@@ -9,8 +9,8 @@ from pydblite import Base
 from collections import namedtuple
 
 _MLS_DB_FILE_NAME = '/var/db/scripts/jet/MLS_data.pdl'
-tuple_MLS_record = namedtuple("tuple_MLS_record", ['leaf_ID','leaf_port','spine_ID','spine_port', 'CKN', 'CAK'])
-_DB_IP = '127.0.0.1'
+tuple_MLS_record = namedtuple("tuple_MLS_record", ['leaf_ID','leaf_port','leaf_hostname','spine_ID','spine_port','spine_hostname', 'CKN', 'CAK'])
+_DB_IP = '127.0.0.1' #this one need to move to yaml config file.
 
 def KeyGenerator():
     ran_ckn = random.randrange(10**80)
@@ -79,20 +79,41 @@ class MLSManager_pydblite(Interface_DBController):
         if self.db.exists():
             self.db.open();    
         else:
-            self.db.create('leaf_ID', 'leaf_port', 'spine_ID','spine_port', 'CAK','CKN');
+            self.db.create('leaf_ID','leaf_port','leaf_hostname','spine_ID','spine_port','spine_hostname', 'CKN', 'CAK', 'time');
             self.db.open();
 
     def insert(self, MLS):
-        self.db.insert(MLS.leaf_ID , MLS.leaf_port , MLS.spine_ID, MLS.spine_port, MLS.CAK, MLS.CKN);
+        self.db.insert(MLS.leaf_ID , MLS.leaf_port , MLS.leaf_hostname , MLS.spine_ID, MLS.spine_port, MLS.spine_hostname, MLS.CKN, MLS.CAK, time.time());
     
     def select(self, leaf_ID, leaf_port, spine_ID, spine_port):
         flag_item_found = False
 
-        for rec in (self.db("leaf_ID") == leaf_ID) & (self.db("leaf_port") == leaf_port) & (self.db("spine_ID") == spine_ID) & (self.db("spine_port") == spine_port):
-            return rec["CKN"], rec["CAK"]
+        ret_CKN = None
+        ret_CAK = None
+
+        #Following IF/ELSE hadling partially match, which happens when one switch got MACsec configured, but the other hasn't (LLDP cannot reach each other.).
+        if (leaf_ID is None) or (leaf_port is None):
+            for rec in (self.db("spine_ID") == spine_ID) & (self.db("spine_port") == spine_port):
+                ret_CKN = rec["CKN"]
+                ret_CAK = rec["CAK"]
+                flag_item_found = True;
+
+        elif (spine_ID is None) or (spine_port is None):
+            for rec in (self.db("leaf_ID") == leaf_ID) & (self.db("leaf_port") == leaf_port):
+                ret_CKN = rec["CKN"]
+                ret_CAK = rec["CAK"]
+                flag_item_found = True;
+
+        else:
+            for rec in (self.db("leaf_ID") == leaf_ID) & (self.db("leaf_port") == leaf_port) & (self.db("spine_ID") == spine_ID) & (self.db("spine_port") == spine_port):
+                ret_CKN = rec["CKN"]
+                ret_CAK = rec["CAK"]
+                flag_item_found = True;
 
         if flag_item_found == False:
-            return '-1','-1'
+            ret_CKN, ret_CAK = '-1','-1'
+
+        return ret_CKN, ret_CAK
 
     def selectall(self):
         return self.db
@@ -115,8 +136,6 @@ def ListCAKCKN():
     list_record = []
 
     for r in records:
-        print r
-        print r['leaf_ID']
         list_record.append(r)
 
     return json.dumps(list_record)
@@ -127,17 +146,17 @@ def QueryCAKCKN():
     print '----------------------------data---------------------------------'
     print request.get_json()
     data = request.get_json()
-    print 'data[\'LocalChassisID\']:' + data['LocalChassisID']
-    print 'data[\'LocalInt\']:' + data['LocalInt']
-    print 'data[\'RemoteChassisID\']:' + data['RemoteChassisID']
-    print 'data[\'RemoteInt\']:' + data['RemoteInt']
-    print 'data[\'CKN\']:' + data['CKN'] if data['CKN'] is not None else 'None'
-    print 'data[\'CAK\']:' + data['CAK'] if data['CAK'] is not None else 'None'
+    print 'data[\'LocalChassisID\']:' + data['LocalChassisID'] if 'LocalChassisID' in data else None
+    print 'data[\'LocalInt\']:' + data['LocalInt'] if 'LocalInt' in data else None
+    print 'data[\'LocalHostname\']:' + data['LocalHostname'] if 'LocalHostname' in data else None
+    print 'data[\'RemoteChassisID\']:' + data['RemoteChassisID'] if 'RemoteChassisID' in data and data['RemoteChassisID'] is not None else None
+    print 'data[\'RemoteHostname\']:' + data['RemoteHostname'] if 'RemoteHostname' in data and data['RemoteHostname'] is not None else None
+    print 'data[\'RemoteInt\']:' + data['RemoteInt'] if 'RemoteInt' in data and data['RemoteInt'] is not None else None
     print '----------------------------end of data--------------------------'
 
     db.open()
 
-    #Do check on local chassis ID & local interface first    
+    #Do check on local chassis ID & local interface first
     ckn, cak = db.select(leaf_ID = data['LocalChassisID'], leaf_port = data['LocalInt'], spine_ID = data['RemoteChassisID'], spine_port = data['RemoteInt'])
     
     print 'selected ckn:' + ckn
@@ -146,12 +165,15 @@ def QueryCAKCKN():
         #Nothing match, check on remote chassis ID and interface.
         ckn, cak = db.select(leaf_ID = data['RemoteChassisID'], leaf_port = data['RemoteInt'], spine_ID = data['LocalChassisID'], spine_port = data['LocalInt'])
             #Generate new CAK&CKN if there's not any record matching the pair.
-        if ckn == '-1':
-            ckn, cak = KeyGenerator()
-            mls = tuple_MLS_record(leaf_ID = data['LocalChassisID'], leaf_port = data['LocalInt'], spine_ID = data['RemoteChassisID'], spine_port = data['RemoteInt'], CKN = ckn, CAK = cak)
 
-            db.insert(mls)
-            db.commit()
+        if ckn == '-1':
+            if (data['LocalChassisID'] is not None) and (data['LocalInt'] is not None) and (data['RemoteChassisID'] is not None) and (data['RemoteInt'] is not None):
+                #When commiting a new pair, we'll have to block any partial match query due to lacking LLDP support after one side has configured MACsec key.
+                ckn, cak = KeyGenerator()
+                mls = tuple_MLS_record(leaf_ID = data['LocalChassisID'], leaf_port = data['LocalInt'], leaf_hostname = data['LocalHostname'], spine_ID = data['RemoteChassisID'], spine_port = data['RemoteInt'], spine_hostname = data['RemoteHostname'], CKN = ckn, CAK = cak)
+
+                db.insert(mls)
+                db.commit()
  
     return jsonify(ckn=ckn, cak=cak)
 

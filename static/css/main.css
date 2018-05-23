@@ -202,30 +202,41 @@ iframe {
 }
 
 .row .cell:nth-child(1) {
-  width: 360px;
-  padding-left: 40px;
+  width: 160px;
+  padding-left: 20px;
+  padding-right: 20px;
 }
 
 .row .cell:nth-child(2) {
   width: 160px;
+  padding-left: 20px;
+  padding-right: 20px;
 }
 
 .row .cell:nth-child(3) {
-  width: 360px;
+  width: 160px;
+  padding-left: 20px;
+  padding-right: 20px;
 }
 
 .row .cell:nth-child(4) {
   width: 160px;
+  padding-left: 20px;
+  padding-right: 20px;
 }
 
 .row .cell:nth-child(5) {
-  width: 180px;
+  width: 240px;
   word-break: break-all
+  padding-left: 20px;
+  padding-right: 20px;
 }
 
 .row .cell:nth-child(6) {
-  width: 180px;
+  width: 240px;
   word-break: break-all
+  padding-left: 20px;
+  padding-right: 20px;
 }
 
 
