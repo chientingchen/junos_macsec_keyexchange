@@ -128,6 +128,10 @@ app.config.from_object(DevConfig)
 def index():
     return render_template('index.html')
 
+@app.route('/crisis', methods=['PUT'])
+def crisis():
+    return '404 crisis? freeman'
+
 @app.route('/ListCAKCKN', methods=['GET'])
 def ListCAKCKN():
     db.open()
@@ -140,7 +144,7 @@ def ListCAKCKN():
 
     return json.dumps(list_record)
 
-@app.route('/QueryCAKCKN',methods=['POST'])
+@app.route('/QueryCAKCKN', methods=['POST'])
 def QueryCAKCKN():
     print 'data:'
     print '----------------------------data---------------------------------'
