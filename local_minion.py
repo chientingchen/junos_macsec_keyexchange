@@ -129,35 +129,31 @@ def DeployConfig_jcs(local_int, ckn, cak, conn_name = None):
     jcs.emit_change(change_xml, "change", "xml")
 
 
-def rest_request(query):
-    headers = {
-        "content-type": "application/json"
-    }
-    data = {
-        "externalId": "801411",
-        "name": "RD Core",
-        "description": "Tenant create",
-        "subscriptionType": "MINIMAL",
-        "features": {
-            "capture": False,
-            "correspondence": True,
-            "vault": False
-        }
-    }
+def rest_request_post(query):
 
-    response = requests.post(
-        url="http://{0}:{1}/QueryCAKCKN".format(SERVER_IP,SERVER_PORT),
-        headers=headers,
-        data=json.dumps({
-                "LocalChassisID": query.LocalChassisID,
-                "LocalInt": query.LocalInt,
-                "LocalHostname": query.LocalHostname,
-                "RemoteChassisID": query.RemoteChassisID,
-                "RemoteInt": query.RemoteInt,
-                "RemoteHostname": query.RemoteHostname
+    response = None
+
+    try:
+        headers = {
+            "content-type": "application/json"
+        }
+        response = requests.post(
+            url="http://{0}:{1}/QueryCAKCKN".format(SERVER_IP,SERVER_PORT),
+            headers=headers,
+            data=json.dumps({
+                    "LocalChassisID": query.LocalChassisID,
+                    "LocalInt": query.LocalInt,
+                    "LocalHostname": query.LocalHostname,
+                    "RemoteChassisID": query.RemoteChassisID,
+                    "RemoteInt": query.RemoteInt,
+                    "RemoteHostname": query.RemoteHostname
                 }
             )
         )
+    except Exception as e:
+        jcs.emit_error('Cannot request data from server, please check sever connectivity.')
+        sys.exit(-1)
+        print str(e)
 
     return response
 
@@ -288,7 +284,7 @@ def main():
     #Query preshared key from server.
     for query in lstQueryCKNCAK:
         #Get responding ckn & cak
-        dict_ServerResponse = json.loads(rest_request(query).text)
+        dict_ServerResponse = json.loads(rest_request_post(query).text)
 
         #Check existing ckn & cak match or not, if there's any.
         if dictLocalIntConn[query.LocalInt] in dictConnCKNCAK:
@@ -296,15 +292,32 @@ def main():
             #Get current configured preshared key
             cur_CKNCAK = dictConnCKNCAK[dictLocalIntConn[query.LocalInt]]
             
-            if dict_ServerResponse['ckn'] != cur_CKNCAK.ckn or dict_ServerResponse['cak'] != Decryptor().juniper_decrypt(cur_CKNCAK.cak):
+            if  (
+                    (
+                        dict_ServerResponse['ckn'] != cur_CKNCAK.ckn or 
+                        dict_ServerResponse['cak'] != Decryptor().juniper_decrypt(cur_CKNCAK.cak)
+                    )
+                    and dict_ServerResponse['ckn'] != None and dict_ServerResponse['cak'] != None
+                ):
                 #ckn cak needs to be updated.
+                jcs.emit_warning("Get latest pre-shared key from server, update it.")
                 DeployConfig_jcs(query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'], dictLocalIntConn[query.LocalInt])
             else:
                 #ckn & cak matched, do not reconfigured.
                 pass
         else:
             #There's not exising pre-shared key, deploy it.
-            DeployConfig_jcs(query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'], dictLocalIntConn[query.LocalInt])
+            if dict_ServerResponse['ckn'] != None and dict_ServerResponse['cak'] != None:
+                jcs.emit_warning("Automatically generate pre-shared key and deploy it.")
+                DeployConfig_jcs(query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'], dictLocalIntConn[query.LocalInt])
+            else:
+                #display error msg since there's no existing record in Database.
+                #Possible scenario:
+                #1. User delete the record and macsec configuration accidentally 
+                #   -> LLDP is not working. -> Cannot recover from error state.
+                #   -> Inform user to delete both side's macsec configuration, and make sure LLDP is up&running, then try again.
+
+                jcs.emit_error("There's not matched pre-shared key in database, please delete both side's macsec configuration and try again.")
 
 
 def logger(strLog):

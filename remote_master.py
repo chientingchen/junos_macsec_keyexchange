@@ -86,7 +86,7 @@ class MLSManager_pydblite(Interface_DBController):
         self.db.insert(MLS.leaf_ID , MLS.leaf_port , MLS.leaf_hostname , MLS.spine_ID, MLS.spine_port, MLS.spine_hostname, MLS.CKN, MLS.CAK, time.time());
     
     def select(self, leaf_ID, leaf_port, spine_ID, spine_port):
-        flag_item_found = False
+        #flag_item_found = False
 
         ret_CKN = None
         ret_CAK = None
@@ -96,30 +96,54 @@ class MLSManager_pydblite(Interface_DBController):
             for rec in (self.db("spine_ID") == spine_ID) & (self.db("spine_port") == spine_port):
                 ret_CKN = rec["CKN"]
                 ret_CAK = rec["CAK"]
-                flag_item_found = True;
+        #        flag_item_found = True;
 
         elif (spine_ID is None) or (spine_port is None):
             for rec in (self.db("leaf_ID") == leaf_ID) & (self.db("leaf_port") == leaf_port):
                 ret_CKN = rec["CKN"]
                 ret_CAK = rec["CAK"]
-                flag_item_found = True;
+        #        flag_item_found = True;
 
         else:
             for rec in (self.db("leaf_ID") == leaf_ID) & (self.db("leaf_port") == leaf_port) & (self.db("spine_ID") == spine_ID) & (self.db("spine_port") == spine_port):
                 ret_CKN = rec["CKN"]
                 ret_CAK = rec["CAK"]
-                flag_item_found = True;
+        #        flag_item_found = True;
 
-        if flag_item_found == False:
-            ret_CKN, ret_CAK = '-1','-1'
+#        if flag_item_found == False:
+#            ret_CKN, ret_CAK = '-1','-1'
 
         return ret_CKN, ret_CAK
+
+    def delete(self, leaf_ID, leaf_port):
+        b_ret_flag = False
+
+        print leaf_ID, leaf_port
+
+        lstTargetRecords = []
+
+        for rec in (self.db("leaf_ID") == leaf_ID) & (self.db("leaf_port") == leaf_port):
+            lstTargetRecords.append(rec)
+
+        for rec in (self.db("spine_ID") == leaf_ID) & (self.db("spine_port") == leaf_port):
+            lstTargetRecords.append(rec)
+
+        print 'lstTargetRecords:'
+        print lstTargetRecords
+
+        try:
+            self.db.delete(lstTargetRecords)
+            b_ret_flag = True
+        except Exception as e:
+            print str(e)
+
+        return b_ret_flag
 
     def selectall(self):
         return self.db
 
     def commit(self):
-        self.db.commit();           
+        self.db.commit();
 
 app = Flask(__name__, template_folder=os.path.join(_INCLUDE_PATH,'templates'), static_folder=os.path.join(_INCLUDE_PATH,'static'))
 app.config.from_object(DevConfig)
@@ -128,9 +152,15 @@ app.config.from_object(DevConfig)
 def index():
     return render_template('index.html')
 
-@app.route('/crisis', methods=['PUT'])
-def crisis():
-    return '404 crisis? freeman'
+@app.route('/DeleteCAKCKN', methods=['PUT'])
+def DeleteCAKCKN():    
+    data = request.get_json()
+
+    db.open()
+    b_ret = db.delete(data['LocalChassisID'],data['LocalInt'])
+    db.commit()
+
+    return json.dumps({"ret_Delete":b_ret})
 
 @app.route('/ListCAKCKN', methods=['GET'])
 def ListCAKCKN():
@@ -162,15 +192,19 @@ def QueryCAKCKN():
 
     #Do check on local chassis ID & local interface first
     ckn, cak = db.select(leaf_ID = data['LocalChassisID'], leaf_port = data['LocalInt'], spine_ID = data['RemoteChassisID'], spine_port = data['RemoteInt'])
-    
-    print 'selected ckn:' + ckn
 
-    if ckn == '-1':
+    if ckn is None:    
+        print 'selected ckn is None'
+
+    if cak is None:
+        print 'selected cak is None'
+
+    if ckn == None:
         #Nothing match, check on remote chassis ID and interface.
         ckn, cak = db.select(leaf_ID = data['RemoteChassisID'], leaf_port = data['RemoteInt'], spine_ID = data['LocalChassisID'], spine_port = data['LocalInt'])
             #Generate new CAK&CKN if there's not any record matching the pair.
 
-        if ckn == '-1':
+        if ckn == None:
             if (data['LocalChassisID'] is not None) and (data['LocalInt'] is not None) and (data['RemoteChassisID'] is not None) and (data['RemoteInt'] is not None):
                 #When commiting a new pair, we'll have to block any partial match query due to lacking LLDP support after one side has configured MACsec key.
                 ckn, cak = KeyGenerator()
@@ -178,6 +212,9 @@ def QueryCAKCKN():
 
                 db.insert(mls)
                 db.commit()
+            else:
+                #In this case, server cannot find any match in db, and thus return (ckn, cak) = (-1,-1).
+                pass
  
     return jsonify(ckn=ckn, cak=cak)
 
