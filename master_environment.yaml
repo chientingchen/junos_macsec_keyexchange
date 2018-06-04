@@ -1,0 +1,7 @@
+MACSEC:
+  INCLUDE_PATH: "./MACsec_master_dependencies"
+  DB_IP: "127.0.0.1"  
+
+Production:
+  SERVER_IP: "172.27.169.153"
+  SERVER_PORT: "8888"

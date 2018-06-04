@@ -1,6 +1,16 @@
 import abc, sys, os, subprocess, random, json, time
-_INCLUDE_PATH = '/var/db/scripts/jet'
-sys.path.insert(0, _INCLUDE_PATH)
+from yaml import load
+#Read Environment config
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_FILE = 'master_environment.yaml'
+
+f=open(os.path.join(THIS_DIR,DATA_FILE))
+data=f.read()
+_INPUT_DATA=load(data)
+f.close()
+
+sys.path.insert(0, _INPUT_DATA['MACSEC']['INCLUDE_PATH'])
+
 from flask import Flask, request, jsonify, render_template
 from config import DevConfig
 from jnpr.junos import Device
@@ -8,9 +18,9 @@ from jnpr.junos.utils.config import Config
 from pydblite import Base
 from collections import namedtuple
 
-_MLS_DB_FILE_NAME = '/var/db/scripts/jet/MLS_data.pdl'
+_MLS_DB_FILE_NAME = './MLS_data.pdl'
 tuple_MLS_record = namedtuple("tuple_MLS_record", ['leaf_ID','leaf_port','leaf_hostname','spine_ID','spine_port','spine_hostname', 'CKN', 'CAK'])
-_DB_IP = '127.0.0.1' #this one need to move to yaml config file.
+_DB_IP = _INPUT_DATA['MACSEC']['DB_IP'] #this one need to move to yaml config file.
 
 def KeyGenerator():
     ran_ckn = random.randrange(10**80)
@@ -145,7 +155,7 @@ class MLSManager_pydblite(Interface_DBController):
     def commit(self):
         self.db.commit();
 
-app = Flask(__name__, template_folder=os.path.join(_INCLUDE_PATH,'templates'), static_folder=os.path.join(_INCLUDE_PATH,'static'))
+app = Flask(__name__, template_folder=os.path.join(_INPUT_DATA['MACSEC']['INCLUDE_PATH'],'templates'), static_folder=os.path.join(_INPUT_DATA['MACSEC']['INCLUDE_PATH'],'static'))
 app.config.from_object(DevConfig)
 
 @app.route('/')
@@ -220,4 +230,4 @@ def QueryCAKCKN():
 
 if __name__ == '__main__':
     db = SimpleDBFactory().CreatePydblite()
-    app.run(host='0.0.0.0', port=8080, debug=False)
+    app.run(host=_INPUT_DATA['Production']['SERVER_IP'], port=_INPUT_DATA['Production']['SERVER_PORT'], debug=False)

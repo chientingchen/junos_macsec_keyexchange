@@ -9,12 +9,23 @@ import os, sys, random, string
 from jnpr.junos import Device
 from lxml import etree
 from collections import namedtuple
-sys.path.insert(0, '/var/db/scripts/jet')
+from yaml import load
+
+#Read Environment config
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_FILE = 'minion_environment.yaml'
+
+f=open(os.path.join(THIS_DIR,DATA_FILE))
+data=f.read()
+_INPUT_DATA=load(data)
+f.close()
+
+sys.path.insert(0, _INPUT_DATA['MACSEC']['INCLUDE_PATH'])
+
 import requests, json
 from jnpr.junos.utils.config import Config
 from datetime import datetime
 import jcs
-sys.path.insert(0, '/var/db/scripts/jet')
 
 tuple_CKN_CAK = namedtuple('tuple_CKN_CAK', ['ckn', 'cak'])
 tuple_Query_CKNCAK = namedtuple('tuple_Query_CKNCAK', ['LocalChassisID','LocalInt','LocalHostname','RemoteChassisID','RemoteInt','RemoteHostname'])
@@ -24,8 +35,8 @@ dictLocalIntConn = {}
 Local_ChassisID = None
 lstQueryCKNCAK = []
 
-SERVER_IP = '172.27.169.123'
-SERVER_PORT = '8080'
+SERVER_IP = _INPUT_DATA['Production']['SERVER_IP']
+SERVER_PORT = _INPUT_DATA['Production']['SERVER_PORT']
 
 class Decryptor():
     def __init__(self):
@@ -129,7 +140,7 @@ def DeployConfig_jcs(local_int, ckn, cak, conn_name = None):
     jcs.emit_change(change_xml, "change", "xml")
 
 def logger(strLog):
-    with open(os.path.join('/var/tmp/','output.txt'), 'a') as target_config:
+    with open(os.path.join(_INPUT_DATA['MACSEC']['LOG_PATH'],'output.txt'), 'a') as target_config:
         target_config.write(strLog+'\n')
 
 def rest_request_post(query):
@@ -215,23 +226,6 @@ class InfoCollector():
         #returning data collected to make this module easily to reuse.
         return self.dictLocalIntConn
 
-    '''
-    def getLocalChassisID(self):
-        #Get chassis ID of current device
-        data = self.dev.rpc.get_chassis_mac_addresses()
-        #print etree.tostring(data, encoding='unicode')
-
-        if data.find('mac-address-information') is not None:
-            #local device is MX series router
-            for item in data.findall('mac-address-information'):
-                self.Local_ChassisID = item.find('private-base-address').text
-        else:
-            #local device is EX series switch
-            for item in data.findall('chassis-mac-addresses-edge-info/fpc-mac-address'):
-                self.Local_ChassisID = item.find('fpc-mac-base').text 
-        return self.Local_ChassisID
-    '''
-
     def get_local_id_hostname(self):
         data = self.dev.rpc.get_lldp_local_info()        
         Local_ChassisID = data.find('lldp-local-chassis-id').text
@@ -263,11 +257,8 @@ class InfoCollector():
     def __del__(self):
         self.dev.close()
 
-
 def main():
-    dev = Device(
-    #host='172.27.169.123', user='lab', passwd='lab123'
-    )
+    dev = Device()
     #collecting MACsec info
     info = InfoCollector(dev)
     dictLocalIntConn = info.getMACsec_interface_conn()
