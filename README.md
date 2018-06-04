@@ -2,75 +2,59 @@
 
 Requirement: 
 ------------
-This lab is baed on
-* 1 ubuntu server
-* 1 vMX.
-* [Junos OpenConfig Package](https://www.juniper.net/support/downloads/?p=openconfig#sw) (For x86 vMX, please select the one with upgraded FreeBSD)
+Minimum requirements
+* 2 juniper devices which supporting [MACsec functionality](https://www.juniper.net/support/downloads/?p=openconfig#sw)
+* Management network connectivities among all devices
+ 
+Tested environment:
+* MX480
+* JUNOS 17.3R1.10
+* Line card model
+
+For remote central server installation:
+* 1 Linux server which has ability to executing python.
+* Management network connectivity among devices and server
 
 Installation:
 -------------
+* Remote Master
+0. Download all files in `MACsec_master_dependencies` to include path and configure the path in `master_environment.cfg`
+    (e.g. Junos device: /var/db/script/jet/)
+1. For linux server, it's recommend to use screen for executing remote_master at background.
+   1. root# screen
+   2. Executing `remote_master.py`
+        ```
+        python remote_master.py
+        ```
+        
+* Local Minion
+0. Deploy basic config Basic.conf at each junos devices.
+1. Download all files in `MACsec_minion_dependencies` to include path, and configure the path in `minion_environment.cfg`
+2. Download `local_minion.py` into `/var/db/scripts/commit/`
 
-0. Install PyEz by following this [link] (https://www.juniper.net/documentation/en_US/junos-pyez/topics/task/installation/junos-pyez-server-installing.html)
-1. git clone this repo into ubuntu server.
-2. Copy `junos-openconfig-x86-32-0.0.0.9.tgz` to targeting junos system
-3. Execute `request system software add junos-openconfig-x86-32-0.0.0.9.tgz`
-4. Execute `show version detail | match openconfig` for making sure it's installed successfully. 
-
-```
-JUNOS Openconfig [0.0.0.9]
-```
-    
 Usage:
 -------------
-1. Edit test.yml
-    * Put your target device IP, account and password under production section.
-    * Put your interface IP and prefixes under TEMPLATE_VARIABLES section.
-
+0. Finish the cabling between all devices and make sure basic configuration are deployed.
+1. Edit macsec configuration as usual, but user doesn't have to configure pre-shared key.
+    * Set MACsec interface
     ```
-    production:
-      TARGET_HOST: "172.27.169.156"
-      TARGET_HOST_ACCOUNT: "lab"
-      TARGET_HOST_PWD: "lab123"
+        set security macsec interfaces <MACsec interface name> connectivity-association <user defined connectivity name>
     ```
-
-2. Execute test.py by `python test.py` on ubuntu server
-
+    * Commit the configuration, commit script would auto-complete the key-exchange for you.
     ```
-    OpenConfig:
-      CFG_TEMPLATE: "test_template.cfg"
-      TARGET_CFG: "candidate.cfg"
-      TEMPLATE_VARIABLES:
-        ip_address: '172.27.3.4'
-        prefixes: '29'
+        commit
     ```
 
-3. This script will do:
-    * Make sure device connection has been set up already.
-    * Render OpenConfig configuration file based on value in `test_data.yml` and configuration template `test_template.cfg`
-    * Deploy OpenConfig configuration through PyEz
-    * Get OpenConfig configuration by PyEz
-4. Execute `show | display translation-scripts translated-config` on vMX, you'll see the junos config which traslated by OpenConfig
+2. You can always check `http://<remote_server_ip>:<port>` for current connection pre-shared key.
 
     ```
-    chassis {
-        aggregated-devices {
-            ethernet {
-                device-count 100;
-            }
-        }
-    }
-    interfaces {
-        ge-0/0/5 {
-            description "* to leaf-01";
-            enable;
-            mtu 9192;
-            unit 0 {
-                family inet {
-                    address 172.16.0.4/31;
-                    address 172.27.1.2/30;
-                    address 172.27.3.4/29;
-                }
-            }
-        }
-    }
+    <Image of Pre-shared key table>
+    ```
+
+3. For topology changing:
+    * Ensure the device connectinity is good.
+    * Log into the device(s) which has new connection(s)
+    * Execute op script `delete_MACsec_interface.py` for deleting specific interface pre-shared key
+    ```
+        op delete_MACsec_interface.py <Device ChassisID> <Device interface name>
     ```
