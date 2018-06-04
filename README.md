@@ -37,13 +37,13 @@ Usage:
 -------------
 0. Finish the cabling between all devices and make sure basic configuration are deployed.
 1. Edit macsec configuration as usual, but user doesn't have to configure pre-shared key.
-    * Set MACsec interface
+* Set MACsec interface
     
     ```
         set security macsec interfaces <MACsec interface name> connectivity-association <user defined connectivity name>
     ```
     
-    * Commit the configuration, commit script would auto-complete the key-exchange for you.
+* Commit the configuration, commit script would auto-complete the key-exchange for you.
     
     ```
         commit
