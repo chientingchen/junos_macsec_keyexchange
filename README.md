@@ -23,6 +23,7 @@ Installation:
 1. For linux server, it's recommend to use screen for executing remote_master at background.
    1. root# screen
    2. Executing `remote_master.py`
+    
         ```
         python remote_master.py
         ```
@@ -37,10 +38,13 @@ Usage:
 0. Finish the cabling between all devices and make sure basic configuration are deployed.
 1. Edit macsec configuration as usual, but user doesn't have to configure pre-shared key.
     * Set MACsec interface
+    
     ```
         set security macsec interfaces <MACsec interface name> connectivity-association <user defined connectivity name>
     ```
+    
     * Commit the configuration, commit script would auto-complete the key-exchange for you.
+    
     ```
         commit
     ```
@@ -55,6 +59,7 @@ Usage:
     * Ensure the device connectinity is good.
     * Log into the device(s) which has new connection(s)
     * Execute op script `delete_MACsec_interface.py` for deleting specific interface pre-shared key
+    
     ```
         op delete_MACsec_interface.py <Device ChassisID> <Device interface name>
     ```
