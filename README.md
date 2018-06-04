@@ -69,4 +69,5 @@ Usage:
     
 Architecture:
 -------------
-![Alt text](https://git.juniper.net/jaxonchen/macsec-keyexchange/blob/master/docs/MACsec_Architecture.png)
+![Alt text](./docs/MACsec_Architecture.png "Architectural Diagram")
+
