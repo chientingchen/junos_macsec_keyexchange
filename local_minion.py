@@ -128,6 +128,9 @@ def DeployConfig_jcs(local_int, ckn, cak, conn_name = None):
                     </security>""".format(conn_name, ckn, cak, local_int)
     jcs.emit_change(change_xml, "change", "xml")
 
+def logger(strLog):
+    with open(os.path.join('/var/tmp/','output.txt'), 'a') as target_config:
+        target_config.write(strLog+'\n')
 
 def rest_request_post(query):
 
@@ -318,11 +321,6 @@ def main():
                 #   -> Inform user to delete both side's macsec configuration, and make sure LLDP is up&running, then try again.
 
                 jcs.emit_error("There's not matched pre-shared key in database, please delete both side's macsec configuration and try again.")
-
-
-def logger(strLog):
-    with open(os.path.join('/var/tmp/','output.txt'), 'a') as target_config:
-        target_config.write(strLog+'\n')
 
 if __name__ == "__main__":
     main()
