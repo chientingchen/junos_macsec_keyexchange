@@ -1,34 +1,39 @@
 # User Guide
 
-Requirement: 
-------------
-Minimum requirements
+## Requirement: 
+### Minimum requirements
+
 * 2 juniper devices which supporting [MACsec functionality](https://www.juniper.net/support/downloads/?p=openconfig#sw)
 * Management network connectivities among all devices
+
+### For remote central server installation:
+* 1 Linux server which has ability to executing python.
+* Management network connectivity among devices and server
  
-Tested environment:
+### Tested environment
+
 * MX480
 * JUNOS 17.3R1.10
 * Line card model
 
-For remote central server installation:
-* 1 Linux server which has ability to executing python.
-* Management network connectivity among devices and server
+## Installation:
 
-Installation:
--------------
-* Remote Master
+### Remote Master
 0. Download all files in `MACsec_master_dependencies` to include path and configure the path in `master_environment.cfg`
     (e.g. Junos device: /var/db/script/jet/)
 1. For linux server, it's recommend to use screen for executing remote_master at background.
-   1. root# screen
-   2. Executing `remote_master.py`
-    
-        ```
-        python remote_master.py
-        ```
+
+    ```
+    root@server# screen
+    ```
         
-* Local Minion
+2. Executing `remote_master.py`
+    
+    ```
+    root@server# python remote_master.py
+    ```
+        
+### Local Minion
 0. Deploy basic config Basic.conf at each junos devices.
 1. Download all files in `MACsec_minion_dependencies` to include path, and configure the path in `minion_environment.cfg`
 2. Download `local_minion.py` into `/var/db/scripts/commit/`
@@ -40,20 +45,18 @@ Usage:
 * Set MACsec interface
     
     ```
-        set security macsec interfaces <MACsec interface name> connectivity-association <user defined connectivity name>
+    junos@MX# set security macsec interfaces <MACsec interface name> connectivity-association <user defined connectivity name>
     ```
     
 * Commit the configuration, commit script would auto-complete the key-exchange for you.
     
     ```
-        commit
+    junos@MX# commit
     ```
 
 2. You can always check `http://<remote_server_ip>:<port>` for current connection pre-shared key.
 
-    ```
-    <Image of Pre-shared key table>
-    ```
+
 
 3. For topology changing:
     * Ensure the device connectinity is good.
@@ -63,3 +66,7 @@ Usage:
     ```
         op delete_MACsec_interface.py <Device ChassisID> <Device interface name>
     ```
+    
+Architecture:
+-------------
+![Alt text](https://git.juniper.net/jaxonchen/macsec-keyexchange/blob/master/docs/MACsec_Architecture.png)
