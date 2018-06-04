@@ -228,14 +228,12 @@ iframe {
 .row .cell:nth-child(5) {
   width: 240px;
   word-break: break-all
-  padding-left: 20px;
   padding-right: 20px;
 }
 
 .row .cell:nth-child(6) {
   width: 240px;
   word-break: break-all
-  padding-left: 20px;
   padding-right: 20px;
 }
 
