@@ -18,7 +18,7 @@ from jnpr.junos.utils.config import Config
 from pydblite import Base
 from collections import namedtuple
 
-_MLS_DB_FILE_NAME = './MLS_data.pdl'
+_MLS_DB_FILE_NAME = _INPUT_DATA['MACSEC']['LOCAL_DB_FILE_PATH']
 tuple_MLS_record = namedtuple("tuple_MLS_record", ['leaf_ID','leaf_port','leaf_hostname','spine_ID','spine_port','spine_hostname', 'CKN', 'CAK'])
 _DB_IP = _INPUT_DATA['MACSEC']['DB_IP'] #this one need to move to yaml config file.
 

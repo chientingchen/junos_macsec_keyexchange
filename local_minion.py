@@ -20,6 +20,8 @@ data=f.read()
 _INPUT_DATA=load(data)
 f.close()
 
+#sys.path.insert(0, '/var/db/scripts/jet')
+#logger(_INPUT_DATA['MACSEC']['INCLUDE_PATH'])
 sys.path.insert(0, _INPUT_DATA['MACSEC']['INCLUDE_PATH'])
 
 import requests, json

@@ -1,5 +1,5 @@
 MACSEC:
-  INCLUDE_PATH: "./MACsec_master_dependencies"
+  INCLUDE_PATH: "/var/db/scripts/jet"
   LOG_PATH: "/var/tmp/"  
 
 Production:
