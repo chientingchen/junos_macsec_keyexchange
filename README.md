@@ -19,7 +19,7 @@
 ## Installation:
 
 ### Remote Master
-0. Download all dependency files located in `MACsec_master_dependencies` to local file path and configure the include path in `master_environment.cfg`
+0. Download all dependency files located in `MACsec_master_dependencies` to local file path and configure the include path in `master_environment.yaml`
    <br> (e.g. For junos device, you can put dependency files on at `/var/db/script/jet/` )
 1. For linux server, it's recommend to use screen for executing remote_master at background.
 
@@ -35,7 +35,7 @@
         
 ### Local Minion
 0. Deploy basic config Basic.conf at each junos devices.
-1. Download all files in `MACsec_minion_dependencies` to include path, and configure the path in `minion_environment.cfg`
+1. Download all files in `MACsec_minion_dependencies` to include path, and configure the path in `minion_environment.yaml`
 2. Download `local_minion.py` into `/var/db/scripts/commit/`
 
 ## Usage:
