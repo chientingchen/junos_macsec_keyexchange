@@ -3,7 +3,7 @@
 ## Requirement: 
 ### Minimum requirements
 
-* 2 juniper devices which supporting [MACsec functionality](https://www.juniper.net/support/downloads/?p=openconfig#sw)
+* 2 juniper devices which supporting [MACsec functionality](https://apps.juniper.net/feature-explorer/search.html#q=MACsec)
 * Management network connectivities among all devices
 
 ### For remote central server installation:
