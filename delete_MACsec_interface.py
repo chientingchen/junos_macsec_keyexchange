@@ -1,5 +1,6 @@
 import sys, os
 from yaml import load
+from local_minion import *
 
 def logger(strLog):
     with open(_INPUT_DATA['MACSEC']['LOG_PATH'], 'a') as target_config:
@@ -15,6 +16,7 @@ _INPUT_DATA=load(data)
 f.close()
 
 logger('Loading required library from ' + _INPUT_DATA['MACSEC']['INCLUDE_PATH'])
+logger_macsec.info('Loading required library from ' + _INPUT_DATA['MACSEC']['INCLUDE_PATH'])
 sys.path.insert(0, _INPUT_DATA['MACSEC']['INCLUDE_PATH'])
 
 import requests, json
@@ -61,10 +63,12 @@ def main():
     print 'delete record with Chassis ID={0}, Interface={1}'.format(args.ChassisID,args.Interface)
 
     logger('Sending delete request to server, Chassis ID={0}, Interface={1}'.format(args.ChassisID,args.Interface))
+    logger_macsec.info('Sending delete request to server, Chassis ID={0}, Interface={1}'.format(args.ChassisID,args.Interface))
 
     rest_request_put(args.ChassisID, args.Interface, 'DeleteCAKCKN')
 
     logger('Delete successful')
+    logger_macsec.info('Delete successful')
 
 
 if __name__ == '__main__':

@@ -1,6 +1,15 @@
 import abc, sys, os, subprocess, random, json, time
 from yaml import load
 
+import logging
+import logging.config
+from os import path
+
+# Init logger
+log_file_path = path.join(path.dirname(path.abspath(__file__)), 'logger_master.conf')
+logging.config.fileConfig(log_file_path)
+logger_master = logging.getLogger("master")
+
 def logger(strLog):
     with open(_INPUT_DATA['MACSEC']['LOG_PATH'], 'a') as target_config:
         target_config.write(strLog+'\n')
@@ -16,6 +25,7 @@ f.close()
 
 sys.path.insert(0, _INPUT_DATA['MACSEC']['INCLUDE_PATH'])
 logger('Loading required library from ' + _INPUT_DATA['MACSEC']['INCLUDE_PATH'])
+logger_master.info('Loading required library from ' + _INPUT_DATA['MACSEC']['INCLUDE_PATH'])
 
 from flask import Flask, request, jsonify, render_template
 from config import DevConfig
@@ -171,6 +181,7 @@ def index():
 @app.route('/DeleteCAKCKN', methods=['PUT'])
 def DeleteCAKCKN():    
     logger('====> [Flask] /DeleteCAKCKN (PUT)')
+    logger_master.info('====> [Flask] /DeleteCAKCKN (PUT)')
 
     data = request.get_json()
 
@@ -179,12 +190,14 @@ def DeleteCAKCKN():
     db.commit()
 
     logger('<==== [Flask] /DeleteCAKCKN (PUT)')
+    logger_master.info('<==== [Flask] /DeleteCAKCKN (PUT)')
 
     return json.dumps({"ret_Delete":b_ret})
 
 @app.route('/ListCAKCKN', methods=['GET'])
 def ListCAKCKN():
     logger('====> [Flask] /ListCAKCKN (GET)')
+    logger_master.info('====> [Flask] /ListCAKCKN (GET)')
 
     db.open()
     records = db.selectall()
@@ -195,6 +208,7 @@ def ListCAKCKN():
         list_record.append(r)
 
     logger('<==== [Flask] /ListCAKCKN (GET)')
+    logger_master.info('<==== [Flask] /ListCAKCKN (GET)')
 
     return json.dumps(list_record)
 
@@ -202,6 +216,7 @@ def ListCAKCKN():
 def QueryCAKCKN():
 
     logger('====> [Flask] /QueryCAKCKN (POST)')
+    logger_master.info('====> [Flask] /QueryCAKCKN (POST)')
 
     data = request.get_json()
 
@@ -225,6 +240,16 @@ def QueryCAKCKN():
     logger('data[\'RemoteInt\']:' + data['RemoteInt'] if 'RemoteInt' in data and data['RemoteInt'] is not None else None)
     logger('----------------------------end of data--------------------------')
 
+    logger_master.info('data:')
+    logger_master.info('----------------------------data---------------------------------')
+    logger_master.info('data[\'LocalChassisID\']:' + data['LocalChassisID'] if 'LocalChassisID' in data else None)
+    logger_master.info('data[\'LocalInt\']:' + data['LocalInt'] if 'LocalInt' in data else None)
+    logger_master.info('data[\'LocalHostname\']:' + data['LocalHostname'] if 'LocalHostname' in data else None)
+    logger_master.info('data[\'RemoteChassisID\']:' + data['RemoteChassisID'] if 'RemoteChassisID' in data and data['RemoteChassisID'] is not None else None)
+    logger_master.info('data[\'RemoteHostname\']:' + data['RemoteHostname'] if 'RemoteHostname' in data and data['RemoteHostname'] is not None else None)
+    logger_master.info('data[\'RemoteInt\']:' + data['RemoteInt'] if 'RemoteInt' in data and data['RemoteInt'] is not None else None)
+    logger_master.info('----------------------------end of data--------------------------')
+
     db.open()
 
     #Do check on local chassis ID & local interface first
@@ -246,23 +271,29 @@ def QueryCAKCKN():
             if (data['LocalChassisID'] is not None) and (data['LocalInt'] is not None) and (data['RemoteChassisID'] is not None) and (data['RemoteInt'] is not None):
                 #When commiting a new pair, we'll have to block any partial match query due to lacking LLDP support after one side has configured MACsec key.
                 logger('There\'s not any existing pre-shared key in the database.')
+                logger_master.info('There\'s not any existing pre-shared key in the database.')
                 ckn, cak = KeyGenerator()
                 logger('Pre-shared key auto-generation')
+                logger_master.info('Pre-shared key auto-generation')
                 mls = tuple_MLS_record(leaf_ID = data['LocalChassisID'], leaf_port = data['LocalInt'], leaf_hostname = data['LocalHostname'], spine_ID = data['RemoteChassisID'], spine_port = data['RemoteInt'], spine_hostname = data['RemoteHostname'], CKN = ckn, CAK = cak)
 
                 db.insert(mls)
                 db.commit()
                 logger('Commiting new pre-shared key into database')
+                logger_master.info('Commiting new pre-shared key into database')
             else:
                 #In this case, server cannot find any match in db, and thus return (ckn, cak) = (-1,-1).
                 pass
  
     logger('<==== [Flask] /QueryCAKCKN (POST)')
+    logger_master.info('<==== [Flask] /QueryCAKCKN (POST)')
 
     return jsonify(ckn=ckn, cak=cak)
 
 if __name__ == '__main__':
     logger('Get database instance')
+    logger_master.info('Get database instance')
     db = SimpleDBFactory().CreatePydblite()
     logger('Start up flask web server')
+    logger_master.info('Start up flask web server')
     app.run(host=_INPUT_DATA['Production']['SERVER_IP'], port=_INPUT_DATA['Production']['SERVER_PORT'], debug=False)
