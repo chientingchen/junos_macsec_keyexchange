@@ -11,6 +11,10 @@ from lxml import etree
 from collections import namedtuple
 from yaml import load
 
+def logger(strLog):
+    with open(_INPUT_DATA['MACSEC']['LOG_PATH'], 'a') as target_config:
+        target_config.write(strLog+'\n')
+
 #Read Environment config
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = 'minion_environment.yaml'
@@ -21,7 +25,7 @@ _INPUT_DATA=load(data)
 f.close()
 
 #sys.path.insert(0, '/var/db/scripts/jet')
-#logger(_INPUT_DATA['MACSEC']['INCLUDE_PATH'])
+logger('Loading required library from ' + _INPUT_DATA['MACSEC']['INCLUDE_PATH'])
 sys.path.insert(0, _INPUT_DATA['MACSEC']['INCLUDE_PATH'])
 
 import requests, json
@@ -106,6 +110,8 @@ def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
 
 def DeployConfig(dev, local_int, ckn, cak, conn_name = None):
 
+    logger('====> In DeployConfig')
+    
     if conn_name is None:
         conn_name = id_generator()
 
@@ -116,8 +122,12 @@ def DeployConfig(dev, local_int, ckn, cak, conn_name = None):
         cu.load('set security macsec interfaces {0} connectivity-association {1}'.format(local_int,conn_name), format='set')
         cu.pdiff()
         cu.commit()
+    
+    logger('<===== Out DeployConfig')
 
 def DeployConfig_jcs(local_int, ckn, cak, conn_name = None):
+
+    logger('====> In DeployConfig_jcs')
 
     if conn_name is None:
         conn_name = id_generator()
@@ -141,11 +151,11 @@ def DeployConfig_jcs(local_int, ckn, cak, conn_name = None):
                     </security>""".format(conn_name, ckn, cak, local_int)
     jcs.emit_change(change_xml, "change", "xml")
 
-def logger(strLog):
-    with open(os.path.join(_INPUT_DATA['MACSEC']['LOG_PATH'],'output.txt'), 'a') as target_config:
-        target_config.write(strLog+'\n')
+    logger('<==== Out DeployConfig_jcs')
 
 def rest_request_post(query):
+
+    logger('====> In rest_request_post')
 
     response = None
 
@@ -171,6 +181,8 @@ def rest_request_post(query):
         sys.exit(-1)
         print str(e)
 
+    logger('<==== Out rest_request_post')
+
     return response
 
 
@@ -183,6 +195,11 @@ class InfoCollector():
         pass
 
     def getMACsec_conn_key(self):
+
+        logger('====> In getMACsec_conn_key')
+        
+        logger('Collecting local macsec connectivity information')
+
         data = self.dev.rpc.get_config(
             filter_xml=etree.XML('''
                <configuration>
@@ -204,10 +221,17 @@ class InfoCollector():
 
             self.dictConnCKNCAK[conn_name] = ckn_cak
 
+        logger('Collecting info succuessful.')
+        logger('<==== Out getMACsec_conn_key')
+
         #returning data collected to make this module easily to reuse.
         return self.dictConnCKNCAK 
 
     def getMACsec_interface_conn(self):
+
+        logger('====> In getMACsec_interface_conn')
+
+        logger('Collecting local macsec interface information')
 
         data = self.dev.rpc.get_config(
             filter_xml=etree.XML('''
@@ -225,17 +249,28 @@ class InfoCollector():
             #dict['xe-0/0/1'] = cal
             self.dictLocalIntConn[item.find('name').text] = item.find('connectivity-association').text
 
+        logger('<==== Out getMACsec_interface_conn')
+
         #returning data collected to make this module easily to reuse.
         return self.dictLocalIntConn
 
     def get_local_id_hostname(self):
+
+        logger('====> In get_local_id_hostname')
+        logger('Collecting local chassis id and hostname information')
+
         data = self.dev.rpc.get_lldp_local_info()        
         Local_ChassisID = data.find('lldp-local-chassis-id').text
         Local_Hostname = data.find('lldp-local-system-name').text
 
+        logger('<==== Out get_local_id_hostname')
+
         return Local_ChassisID, Local_Hostname
 
     def get_remote_ID_port_by_LLDP(self, local_int):
+
+        logger('====> In get_remote_ID_port_by_LLDP')
+        logger('Collecting remoete chassis id and hostname information by LLDP')
 
         #Try to get following info from lldp:
         #   neighbor hostname connected by local interface
@@ -253,6 +288,8 @@ class InfoCollector():
             remote_chassisID = item.find('lldp-remote-chassis-id').text
             remote_int = item.find('lldp-remote-port-description').text
             remote_hostname = item.find('lldp-remote-system-name').text
+
+        logger('<==== Out get_remote_ID_port_by_LLDP')
 
         return remote_chassisID, remote_int, remote_hostname
 
@@ -277,13 +314,17 @@ def main():
 
         lstQueryCKNCAK.append(query)
 
+    logger('Information ready, prepared to query from remote master')
+
     #Query preshared key from server.
     for query in lstQueryCKNCAK:
         #Get responding ckn & cak
         dict_ServerResponse = json.loads(rest_request_post(query).text)
+        logger('Got response from remote master')
 
         #Check existing ckn & cak match or not, if there's any.
         if dictLocalIntConn[query.LocalInt] in dictConnCKNCAK:
+            logger('pre-shared key comparison')
 
             #Get current configured preshared key
             cur_CKNCAK = dictConnCKNCAK[dictLocalIntConn[query.LocalInt]]
@@ -296,23 +337,33 @@ def main():
                     and dict_ServerResponse['ckn'] != None and dict_ServerResponse['cak'] != None
                 ):
                 #ckn cak needs to be updated.
+                logger('pre-shared key needs update')
+
                 jcs.emit_warning("Get latest pre-shared key from server, update it.")
                 DeployConfig_jcs(query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'], dictLocalIntConn[query.LocalInt])
+
+                logger('finish pre-shared key update')
             else:
+                logger('pre-shared key match, skip update.')
                 #ckn & cak matched, do not reconfigured.
                 pass
         else:
             #There's not exising pre-shared key, deploy it.
+            logger('pre-shared key not existed, need to deploy a new one.')
+
             if dict_ServerResponse['ckn'] != None and dict_ServerResponse['cak'] != None:
                 jcs.emit_warning("Automatically generate pre-shared key and deploy it.")
                 DeployConfig_jcs(query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'], dictLocalIntConn[query.LocalInt])
+                logger('pre-shared key deployed.')
             else:
                 #display error msg since there's no existing record in Database.
                 #Possible scenario:
                 #1. User delete the record and macsec configuration accidentally 
                 #   -> LLDP is not working. -> Cannot recover from error state.
                 #   -> Inform user to delete both side's macsec configuration, and make sure LLDP is up&running, then try again.
-
+                logger('No match record in remote_master\'s database, please delete related records \
+                        and make sure LLDP is up and running between devices')
+                logger('e.g. junos@MX480> op delete_MACsec_interface.py <Device ChassisID> <Device interface name>')
                 jcs.emit_error("There's not matched pre-shared key in database, please delete both side's macsec configuration and try again.")
 
 if __name__ == "__main__":
