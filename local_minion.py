@@ -286,7 +286,7 @@ class InfoCollector():
 
         for item in data.findall('lldp-neighbor-information'):
             remote_chassisID = item.find('lldp-remote-chassis-id').text
-            remote_int = item.find('lldp-remote-port-description').text
+            remote_int = item.find('lldp-remote-port-id').text
             remote_hostname = item.find('lldp-remote-system-name').text
 
         logger('<==== Out get_remote_ID_port_by_LLDP')
