@@ -154,6 +154,9 @@ lab@MX480X1b> op remote_master.py
     junos@MX# commit
     ```
 4. The output below should appear, which indicates key is automatically generated and deployed.
+<br><br/>
+![Alt text](./docs/local_minion_commit.png "Local minion console commit screenshot")
+<br><br/>
 
 
 2. For linux server, it's recommend to use screen for executing remote_master at background.
