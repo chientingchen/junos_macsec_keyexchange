@@ -81,7 +81,8 @@
     * `SERVER_IP` is IP address of the device which `remote_master.py` would running at.
     * `SERVER_PORT` is the port which allow `remote_master.py` to accept/response HTTP requests.
 
-7. Deploy base config
+7. Deploy base config `BaseConfigs/OnBox/Onbox_remote_master_Basic.conf` to juniper device which acting as sever.
+8. Deploy base config `BaseConfigs/OnBox/Onbox_local_minion_Basic.conf` to all juniper devices.
 
 <a name="offbox-installation"></a>    
 ### Off-box mode:
@@ -126,8 +127,7 @@
     * `SERVER_IP` is IP address of the device which `remote_master.py` would running at.
     * `SERVER_PORT` is the port which allow `remote_master.py` to accept/response HTTP requests.
     
-8. Deploy base config
-
+7. Deploy base config `BaseConfigs/OnBox/Onbox_remote_master_Basic.conf` to juniper device which acting as sever.
 ## Usage:
 
 ### On-box mode:
