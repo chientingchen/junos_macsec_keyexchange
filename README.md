@@ -129,15 +129,34 @@
 ### On-box mode:
 
 #### Remote master:
-1. ssh to junos cli on juniper device which `remote_master` located at.
+1. ssh to junos cli on juniper device which `remote_master` located.
 2. Executing op script `remote_master.py`
 ```
 lab@MX480X1b> op remote_master.py
 ```
 3. The following message should show up, please leave the session here alive.
+<br><br/>
 ![Alt text](./docs/remote_master_console.png "Remote master console screenshot")
+<br><br/>
 
-1. For linux server, it's recommend to use screen for executing remote_master at background.
+#### Local minion:
+1. ssh to junos cli at each juniper device which `local_minion.py` located.
+2. Edit macsec configuration as usual, but user doesn't have to configure pre-shared key.
+
+    ```
+    junos@MX# set security macsec interfaces <MACsec interface name> connectivity-association <user defined connectivity name>
+    ```
+    * Please make sure LLDP is up and running at all juniper devices and cabling are done correctly before commit.
+
+3. Commit the configuration, `local_minion.py` would complete the configuration for you.
+
+    ```
+    junos@MX# commit
+    ```
+4. The output below should appear, which indicates key is automatically generated and deployed.
+
+
+2. For linux server, it's recommend to use screen for executing remote_master at background.
 
     ```
     root@server# screen
