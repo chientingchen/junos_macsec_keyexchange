@@ -15,6 +15,10 @@ from yaml import load
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = 'master_environment.yaml'
 
+def logger(strLog):
+    with open(_INPUT_DATA['MACSEC']['LOG_PATH'], 'a') as target_config:
+        target_config.write(strLog+'\n')
+
 f=open(os.path.join(THIS_DIR,DATA_FILE))
 data=f.read()
 _INPUT_DATA=load(data)
