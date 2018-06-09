@@ -80,6 +80,8 @@
     * `SERVER_IP` is IP address of the device which `remote_master.py` would running at.
     * `SERVER_PORT` is the port which allow `remote_master.py` to accept/response HTTP requests.
 
+6. Deploy base config
+
 <a name="offbox-installation"></a>    
 ### Off-box mode:
 
@@ -124,7 +126,16 @@
 
 ## Usage:
 
-### Remote Master:
+### On-box mode:
+
+#### Remote master:
+1. ssh to junos cli on juniper device which `remote_master` located at.
+2. Executing op script `remote_master.py`
+```
+lab@MX480X1b> op remote_master.py
+```
+3. The following message should show up, please leave the session here alive.
+![Alt text](./docs/remote_master_console.png "Remote master console screenshot")
 
 1. For linux server, it's recommend to use screen for executing remote_master at background.
 
