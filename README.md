@@ -29,29 +29,103 @@
     * it's designed for deploy MACsec keys to local device. For any device which require automatic MACsec key exchange would have to equipped with this script.
 
 * Execution mode:
-    * On-box mode:
+    * [On-box mode](#onbox-installation):
         * In this mode, `remote_server.py` would running on top of juniper device, in other words, one of the juniper device in user's environemnt would acting as a server 
         * In the same time, `local_minion.py` would also executing on all the juniper devices(including the same one acting as a server.) in user's environment.
 
-    * Off-box mode:
+    * [Off-box mode](#offbox-installation):
         * In this mode, `remote_server.py` would running on top of any linux server in user's environment, as a central storage.
         * In the same time, `local_minion.py` would execute on all the juniper devices in user's environment.
 
 ## Installation:
+
+<a name="onbox-installation"></a>    
 ### On-box mode:
 
-0. Download all files located in `MACsec_master_dependencies` to `/var/db/scripts/op`
-1. Download `remote_master.py` and `master_environment.yaml` to `/var/db/scripts/op`
-2. Download all files located in `MACsec_minion_dependencies` to `/var/db/scripts/commit`
-3. Download `local_minion.py` and `minion_environment.yaml` to `/var/db/scripts/commit`
+0. Download folder `MACsec_master_dependencies` to `/var/db/scripts/op` on thr juniper device which is going to acting as server.
+1. Download `remote_master.py` and `master_environment.yaml` to `/var/db/scripts/op`  on the juniper device which is going to acting as server.
+2. Download folder `MACsec_minion_dependencies` to `/var/db/scripts/commit` on all juniper device.
+3. Download `local_minion.py` and `minion_environment.yaml` to `/var/db/scripts/commit` on all juniper device.
 4. Editing `master_envionment.yaml`:
-    * 
-5. 
+    
+    ```
+    MACSEC:
+      INCLUDE_PATH: "./MACsec_master_dependencies"
+      LOCAL_DB_FILE_PATH: "./MLS_data.pdl"
+      LOG_PATH: "./AutoMACsec.log"  
 
+    Production:
+      SERVER_IP: "172.27.169.153"
+      SERVER_PORT: "8888"
+    ```
+    * `INCLUDE_PATH` is the field which indicate where the `MACsec_master_dependencies` located
+    * `LOCAL_DB_FILE_PATH` is the field which indicate where should database file located
+    * `LOG_PATH` is the field which indicate where should log being stored at.
+    * `SERVER_IP` is IP address of the device which `remote_master.py` would running at.
+    * `SERVER_PORT` is the port which allow `remote_master.py` to accept/response HTTP requests.
+    
+5. Editing `minion_environment.yaml`:
+    
+    ```
+    MACSEC:
+      INCLUDE_PATH: ./MACsec_minion_dependencies"
+      LOG_PATH: "./AutoMACsec.log"  
+    
+    Production:
+      SERVER_IP: "172.27.169.153"
+      SERVER_PORT: "8888"
+    ```
+    * `INCLUDE_PATH` is the field which indicate where the `MACsec_minion_dependencies` located
+    * `LOG_PATH` is the field which indicate where should log being stored at.
+    * `SERVER_IP` is IP address of the device which `remote_master.py` would running at.
+    * `SERVER_PORT` is the port which allow `remote_master.py` to accept/response HTTP requests.
 
-### Remote Master
-0. Download all dependency files located in `MACsec_master_dependencies` to local file path and configure the include path in `master_environment.yaml`
-   <br> (e.g. For junos device, you can put dependency files on at `/var/db/script/jet/` )
+<a name="offbox-installation"></a>    
+### Off-box mode:
+
+0. Create a folder `MACsec_remote_master` on linux server
+1. Download folder `MACsec_master_dependencies` to folder `MACsec_remote_master` on linux server
+2. Download `remote_master.py` and `master_environment.yaml` to folder `MACsec_remote_master` on linux server
+3. Download folder `MACsec_minion_dependencies` to `/var/db/scripts/commit` on all juniper devices
+4. Download `local_minion.py` and `minion_environment.yaml` to `/var/db/scripts/commit` on all juniper devices
+5. Editing `master_envionment.yaml`:
+    
+    ```
+    MACSEC:
+      INCLUDE_PATH: "./MACsec_master_dependencies"
+      LOCAL_DB_FILE_PATH: "./MLS_data.pdl"
+      LOG_PATH: "./AutoMACsec.log"  
+
+    Production:
+      SERVER_IP: "172.27.169.153"
+      SERVER_PORT: "8888"
+    ```
+    * `INCLUDE_PATH` is the field which indicate where the `MACsec_master_dependencies` located
+    * `LOCAL_DB_FILE_PATH` is the field which indicate where should database file located
+    * `LOG_PATH` is the field which indicate where should log being stored at.
+    * `SERVER_IP` is IP address of the device which `remote_master.py` would running at.
+    * `SERVER_PORT` is the port which allow `remote_master.py` to accept/response HTTP requests.
+    
+5. Editing `minion_environment.yaml`:
+    
+    ```
+    MACSEC:
+      INCLUDE_PATH: ./MACsec_minion_dependencies"
+      LOG_PATH: "./AutoMACsec.log"  
+    
+    Production:
+      SERVER_IP: "172.27.169.153"
+      SERVER_PORT: "8888"
+    ```
+    * `INCLUDE_PATH` is the field which indicate where the `MACsec_minion_dependencies` located
+    * `LOG_PATH` is the field which indicate where should log being stored at.
+    * `SERVER_IP` is IP address of the device which `remote_master.py` would running at.
+    * `SERVER_PORT` is the port which allow `remote_master.py` to accept/response HTTP requests.
+
+## Usage:
+
+### Remote Master:
+
 1. For linux server, it's recommend to use screen for executing remote_master at background.
 
     ```
@@ -65,11 +139,6 @@
     ```
         
 ### Local Minion
-0. Deploy basic config Basic.conf at each junos devices.
-1. Download all files in `MACsec_minion_dependencies` to include path, and configure the path in `minion_environment.yaml`
-2. Download `local_minion.py` into `/var/db/scripts/commit/`
-
-## Usage:
 
 ### Pre-shared key auto-gen & deployment:
 0. Finish the cabling between all devices and make sure basic configuration are deployed.
