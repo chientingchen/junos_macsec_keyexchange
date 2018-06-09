@@ -16,7 +16,38 @@
 * JUNOS 17.3R1.10
 * Line card model
 
+## Introduction:
+
+* As [architecture diagram](#archi) shown, this tool would have a script(`remote_master.py`) running as a server and the other script(`local_minion.py`) running as a client.
+
+* Module `remote_master.py`:
+    * It's allow to running on linux server or juniper device.
+    * it's designed as central storage of all MACsec pre-shared keys.
+
+* Module `local_minion.py`:
+    * It's only allow to execute on top of juniper device
+    * it's designed for deploy MACsec keys to local device. For any device which require automatic MACsec key exchange would have to equipped with this script.
+
+* Execution mode:
+    * On-box mode:
+        * In this mode, `remote_server.py` would running on top of juniper device, in other words, one of the juniper device in user's environemnt would acting as a server 
+        * In the same time, `local_minion.py` would also executing on all the juniper devices(including the same one acting as a server.) in user's environment.
+
+    * Off-box mode:
+        * In this mode, `remote_server.py` would running on top of any linux server in user's environment, as a central storage.
+        * In the same time, `local_minion.py` would execute on all the juniper devices in user's environment.
+
 ## Installation:
+### On-box mode:
+
+0. Download all files located in `MACsec_master_dependencies` to `/var/db/scripts/op`
+1. Download `remote_master.py` and `master_environment.yaml` to `/var/db/scripts/op`
+2. Download all files located in `MACsec_minion_dependencies` to `/var/db/scripts/commit`
+3. Download `local_minion.py` and `minion_environment.yaml` to `/var/db/scripts/commit`
+4. Editing `master_envionment.yaml`:
+    * 
+5. 
+
 
 ### Remote Master
 0. Download all dependency files located in `MACsec_master_dependencies` to local file path and configure the include path in `master_environment.yaml`
@@ -81,5 +112,6 @@
     
 Architecture:
 -------------
+<a name="archi"></a>
 ![Alt text](./docs/MACsec_Architecture.png "Architectural Diagram")
 
