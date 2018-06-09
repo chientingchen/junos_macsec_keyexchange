@@ -12,9 +12,9 @@
  
 ### Tested environment
 
-* MX480
-* JUNOS 17.3R1.10
-* Line card model
+* Device model: MX480
+* Junos Version: JUNOS 17.3R1.10
+* Line card model: MIC-3D-20GE-SFP-E
 
 ## Introduction:
 
