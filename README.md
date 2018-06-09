@@ -10,7 +10,7 @@
 * 1 Linux server which has ability to executing python.
 * Management network connectivity among devices and server
  
-### Tested environment
+## Tested environment
 
 * Device model: MX480
 * Junos Version: JUNOS 17.3R1.10
@@ -81,7 +81,8 @@
     * `SERVER_IP` is IP address of the device which `remote_master.py` would running at.
     * `SERVER_PORT` is the port which allow `remote_master.py` to accept/response HTTP requests.
 
-7. Deploy base config
+7. Deploy base config `BaseConfigs/OnBox/Onbox_remote_master_Basic.conf` to juniper device which acting as sever.
+8. Deploy base config `BaseConfigs/OnBox/Onbox_local_minion_Basic.conf` to all juniper devices.
 
 <a name="offbox-installation"></a>    
 ### Off-box mode:
@@ -126,7 +127,7 @@
     * `SERVER_IP` is IP address of the device which `remote_master.py` would running at.
     * `SERVER_PORT` is the port which allow `remote_master.py` to accept/response HTTP requests.
     
-8. Deploy base config
+8. Deploy base config `BaseConfigs/OffBox/Offbox_local_minion_Basic.conf` to all juniper devices.
 
 ## Usage:
 
@@ -234,6 +235,13 @@ root@Ubuntu:~/python remote_master.py
 <br><br/>
 ![Alt text](./docs/local_minion_commit.png "Local minion console commit screenshot")
 <br><br/>
+
+## FAQ
+* Question: Why this tool is not going to use netconf for deploy pre-shared key pairs?
+* Ans: This tool was design for minimize the user input, including device login credentials, as a result, local script deployment can achieve this goal in this design.
+<br><br/>
+* Question: Why we only have HTTP protocal here instead of HTTPS?
+* Ans: This is being confidered as an enhancement if user is really interested in this domain. It's likely to be a self-signed certificate for each user.
 
 Architecture:
 -------------
