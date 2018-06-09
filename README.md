@@ -43,53 +43,10 @@
 ### On-box mode:
 
 0. Download folder `MACsec_master_dependencies` to `/var/db/scripts/op` on thr juniper device which is going to acting as server.
-1. Download `remote_master.py` and `master_environment.yaml` to `/var/db/scripts/op`  on the juniper device which is going to acting as server.
+1. Download `remote_master.py`, `master_environment.yaml` to `/var/db/scripts/op` on the juniper device which is going to acting as server.
 2. Download folder `MACsec_minion_dependencies` to `/var/db/scripts/commit` on all juniper device.
 3. Download `local_minion.py` and `minion_environment.yaml` to `/var/db/scripts/commit` on all juniper device.
-4. Editing `master_envionment.yaml`:
-    
-    ```
-    MACSEC:
-      INCLUDE_PATH: "./MACsec_master_dependencies"
-      LOCAL_DB_FILE_PATH: "./MLS_data.pdl"
-      LOG_PATH: "./AutoMACsec.log"  
-
-    Production:
-      SERVER_IP: "172.27.169.153"
-      SERVER_PORT: "8888"
-    ```
-    * `INCLUDE_PATH` is the field which indicate where the `MACsec_master_dependencies` located
-    * `LOCAL_DB_FILE_PATH` is the field which indicate where should database file located
-    * `LOG_PATH` is the field which indicate where should log being stored at.
-    * `SERVER_IP` is IP address of the device which `remote_master.py` would running at.
-    * `SERVER_PORT` is the port which allow `remote_master.py` to accept/response HTTP requests.
-    
-5. Editing `minion_environment.yaml`:
-    
-    ```
-    MACSEC:
-      INCLUDE_PATH: ./MACsec_minion_dependencies"
-      LOG_PATH: "./AutoMACsec.log"  
-    
-    Production:
-      SERVER_IP: "172.27.169.153"
-      SERVER_PORT: "8888"
-    ```
-    * `INCLUDE_PATH` is the field which indicate where the `MACsec_minion_dependencies` located
-    * `LOG_PATH` is the field which indicate where should log being stored at.
-    * `SERVER_IP` is IP address of the device which `remote_master.py` would running at.
-    * `SERVER_PORT` is the port which allow `remote_master.py` to accept/response HTTP requests.
-
-6. Deploy base config
-
-<a name="offbox-installation"></a>    
-### Off-box mode:
-
-0. Create a folder `MACsec_remote_master` on linux server
-1. Download folder `MACsec_master_dependencies` to folder `MACsec_remote_master` on linux server
-2. Download `remote_master.py` and `master_environment.yaml` to folder `MACsec_remote_master` on linux server
-3. Download folder `MACsec_minion_dependencies` to `/var/db/scripts/commit` on all juniper devices
-4. Download `local_minion.py` and `minion_environment.yaml` to `/var/db/scripts/commit` on all juniper devices
+4. Download `delete_MACsec_interface.py` to `/var/db/scripts/op` on all juniper devices
 5. Editing `master_envionment.yaml`:
     
     ```
@@ -108,7 +65,7 @@
     * `SERVER_IP` is IP address of the device which `remote_master.py` would running at.
     * `SERVER_PORT` is the port which allow `remote_master.py` to accept/response HTTP requests.
     
-5. Editing `minion_environment.yaml`:
+6. Editing `minion_environment.yaml`:
     
     ```
     MACSEC:
@@ -116,13 +73,60 @@
       LOG_PATH: "./AutoMACsec.log"  
     
     Production:
-      SERVER_IP: "172.27.169.153"
+      SERVER_IP: "172.27.169.122"
       SERVER_PORT: "8888"
     ```
     * `INCLUDE_PATH` is the field which indicate where the `MACsec_minion_dependencies` located
     * `LOG_PATH` is the field which indicate where should log being stored at.
     * `SERVER_IP` is IP address of the device which `remote_master.py` would running at.
     * `SERVER_PORT` is the port which allow `remote_master.py` to accept/response HTTP requests.
+
+7. Deploy base config
+
+<a name="offbox-installation"></a>    
+### Off-box mode:
+
+0. Create a folder `MACsec_remote_master` on linux server
+1. Download folder `MACsec_master_dependencies` to folder `MACsec_remote_master` on linux server
+2. Download `remote_master.py` and `master_environment.yaml` to folder `MACsec_remote_master` on linux server
+3. Download folder `MACsec_minion_dependencies` to `/var/db/scripts/commit` on all juniper devices
+4. Download `local_minion.py`, `minion_environment.yaml` to `/var/db/scripts/commit` on all juniper devices
+5. Download `delete_MACsec_interface.py` to `/var/db/scripts/op` on all juniper devices 
+6. Editing `master_envionment.yaml`:
+    
+    ```
+    MACSEC:
+      INCLUDE_PATH: "./MACsec_master_dependencies"
+      LOCAL_DB_FILE_PATH: "./MLS_data.pdl"
+      LOG_PATH: "./AutoMACsec.log"  
+
+    Production:
+      SERVER_IP: "172.27.169.122"
+      SERVER_PORT: "8888"
+    ```
+    * `INCLUDE_PATH` is the field which indicate where the `MACsec_master_dependencies` located
+    * `LOCAL_DB_FILE_PATH` is the field which indicate where should database file located
+    * `LOG_PATH` is the field which indicate where should log being stored at.
+    * `SERVER_IP` is IP address of the device which `remote_master.py` would running at.
+    * `SERVER_PORT` is the port which allow `remote_master.py` to accept/response HTTP requests.
+    
+7. Editing `minion_environment.yaml`:
+    
+    ```
+    MACSEC:
+      INCLUDE_PATH: ./MACsec_minion_dependencies"
+      LOG_PATH: "./AutoMACsec.log"  
+    
+    Production:
+      SERVER_IP: "172.27.169.122"
+      SERVER_PORT: "8888"
+    ```
+    * `INCLUDE_PATH` is the field which indicate where the `MACsec_minion_dependencies` located
+    * `LOG_PATH` is the field which indicate where should log being stored at.
+    * `SERVER_IP` is IP address of the device which `remote_master.py` would running at.
+    * `SERVER_PORT` is the port which allow `remote_master.py` to accept/response HTTP requests.
+    
+8. Deploy base config
 
 ## Usage:
 
@@ -158,36 +162,42 @@ lab@MX480X1b> op remote_master.py
 ![Alt text](./docs/local_minion_commit.png "Local minion console commit screenshot")
 <br><br/>
 
+### Off-box mode:
 
-2. For linux server, it's recommend to use screen for executing remote_master at background.
+#### Remote master:
+1. ssh to linux server cli (Ubuntu 14.04 cli is shown here as example).
+2. Go to the file path which `remote_master.py` located
+3. Executing script `remote_master.py`
+```
+root@Ubuntu:~/python remote_master.py
+```
+3. The following message should show up, please leave the session here alive.
+<br><br/>
+![Alt text](./docs/remote_master_console.png "Remote master console screenshot")
+<br><br/>
+    * If user don't prefer to keep session terminal at all time, please take advantage on `screen` linux command.
 
-    ```
-    root@server# screen
-    ```
-        
-2. Executing `remote_master.py`
-    
-    ```
-    root@server# python remote_master.py
-    ```
-        
-### Local Minion
-
-### Pre-shared key auto-gen & deployment:
-0. Finish the cabling between all devices and make sure basic configuration are deployed.
-1. Edit macsec configuration as usual, but user doesn't have to configure pre-shared key.
+#### Local minion:
+1. ssh to junos cli at each juniper device which `local_minion.py` located.
+2. Edit macsec configuration as usual, but user doesn't have to configure pre-shared key.
 
     ```
     junos@MX# set security macsec interfaces <MACsec interface name> connectivity-association <user defined connectivity name>
     ```
-    
-2. Commit the configuration, commit script would auto-complete the key-exchange for you.
-    
+    * Please make sure LLDP is up and running at all juniper devices and cabling are done correctly before commit.
+
+3. Commit the configuration, `local_minion.py` would complete the configuration for you.
+
     ```
     junos@MX# commit
     ```
+4. The output below should appear, which indicates key is automatically generated and deployed.
+<br><br/>
+![Alt text](./docs/local_minion_commit.png "Local minion console commit screenshot")
+<br><br/>
 
-3. You can always check `http://<remote_server_ip>:<port>` for current connection pre-shared key.
+### Monitoring pre-shared key pair at web page.
+* You can always check `http://<remote_server_ip>:<port>` for current connection pre-shared key.
 
 ![Alt text](./docs/Pre-shared_key_table.png "Screen shot of pre-shared key table")
 
@@ -197,21 +207,34 @@ lab@MX480X1b> op remote_master.py
 3. Execute op script `delete_MACsec_interface.py` for deleting specific interface pre-shared key
 
     ```
-    op delete_MACsec_interface.py <Device ChassisID> <Device interface name>
+    junos@MX> op delete_MACsec_interface.py ChassisID <Device ChassisID> Interface <Device interface name>
     ```
+4. Following output should appear to indicate delete action is done.
+![Alt text](./docs/delete_output.png "delete_MACsec_interface output screenshot")
 
-4. Once again, edit macsec configuration as usual, don't have to configure pre-shared key.
+5. Delete orginal wrong MACsec configuration on specific interface
+    
+    ```
+    junos@MX# delete security macsec interfaces <MACsec interface name>
+    ```
+    
+6. Once again, edit macsec configuration as usual, don't have to configure pre-shared key.
 
     ```
     junos@MX# set security macsec interfaces <MACsec interface name> connectivity-association <user defined connectivity name>
     ```
     
-5. Commit the configuration, commit script would auto-complete the key-exchange for you.
+7. Commit the configuration, commit script would auto-complete the key-exchange for you.
     
     ```
     junos@MX# commit
     ```
-    
+
+8. The output below should appear, which indicates key is automatically generated and deployed.
+<br><br/>
+![Alt text](./docs/local_minion_commit.png "Local minion console commit screenshot")
+<br><br/>
+
 Architecture:
 -------------
 <a name="archi"></a>
