@@ -42,7 +42,7 @@ f.close()
 
 #sys.path.insert(0, '/var/db/scripts/jet')
 logger('Loading required library from ' + _INPUT_DATA['MACSEC']['INCLUDE_PATH'])
-sys.path.insert(0, _INPUT_DATA['MACSEC']['INCLUDE_PATH'])
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), _INPUT_DATA['MACSEC']['INCLUDE_PATH']))
 
 import requests, json
 from jnpr.junos.utils.config import Config

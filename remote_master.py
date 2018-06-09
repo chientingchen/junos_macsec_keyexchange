@@ -20,7 +20,7 @@ data=f.read()
 _INPUT_DATA=load(data)
 f.close()
 
-sys.path.insert(0, _INPUT_DATA['MACSEC']['INCLUDE_PATH'])
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), _INPUT_DATA['MACSEC']['INCLUDE_PATH']))
 logger('Loading required library from ' + _INPUT_DATA['MACSEC']['INCLUDE_PATH'])
 
 from flask import Flask, request, jsonify, render_template
