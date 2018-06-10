@@ -51,17 +51,20 @@
     
     ```
     MACSEC:
-      INCLUDE_PATH: "./MACsec_master_dependencies"
-      LOCAL_DB_FILE_PATH: "./MLS_data.pdl"
-      LOG_PATH: "./AutoMACsec.log"  
+      INCLUDE_PATH: "/var/db/scripts/op/MACsec_master_dependencies"
+      LOCAL_DB_FILE_PATH: "/var/db/scripts/op/MLS_data.pdl"
+      LOG_PATH: "/var/db/scripts/op/AutoMACsec.log"
+      DEBUG: TRUE
 
     Production:
       SERVER_IP: "172.27.169.153"
       SERVER_PORT: "8888"
     ```
+    * For all the path in this configuration file, please use `Absolute file path`, no relative path would be allowed here.
     * `INCLUDE_PATH` is the field which indicate where the `MACsec_master_dependencies` located
     * `LOCAL_DB_FILE_PATH` is the field which indicate where should database file located
     * `LOG_PATH` is the field which indicate where should log being stored at.
+    * `DEBUG` is the field which indicate LOG debug level, only `TRUE` or `FALSE` are options here.
     * `SERVER_IP` is IP address of the device which `remote_master.py` would running at.
     * `SERVER_PORT` is the port which allow `remote_master.py` to accept/response HTTP requests.
     
@@ -69,15 +72,18 @@
     
     ```
     MACSEC:
-      INCLUDE_PATH: ./MACsec_minion_dependencies"
-      LOG_PATH: "./AutoMACsec.log"  
+      INCLUDE_PATH: "/var/db/scripts/commit/MACsec_minion_dependencies"
+      LOG_PATH: "/var/db/scripts/commit/AutoMACsec.log"  
+      DEBUG: TRUE
     
     Production:
       SERVER_IP: "172.27.169.122"
       SERVER_PORT: "8888"
     ```
+    * For all the path in this configuration file, please use `Absolute file path`, no relative path would be allowed here.
     * `INCLUDE_PATH` is the field which indicate where the `MACsec_minion_dependencies` located
     * `LOG_PATH` is the field which indicate where should log being stored at.
+    * `DEBUG` is the field which indicate LOG debug level, only `TRUE` or `FALSE` are options here.
     * `SERVER_IP` is IP address of the device which `remote_master.py` would running at.
     * `SERVER_PORT` is the port which allow `remote_master.py` to accept/response HTTP requests.
 
@@ -97,33 +103,40 @@
     
     ```
     MACSEC:
-      INCLUDE_PATH: "./MACsec_master_dependencies"
-      LOCAL_DB_FILE_PATH: "./MLS_data.pdl"
-      LOG_PATH: "./AutoMACsec.log"  
+      INCLUDE_PATH: "/var/tmp/MACsec_master_dependencies"
+      LOCAL_DB_FILE_PATH: "/var/tmp/MLS_data.pdl"
+      LOG_PATH: "/var/tmp/AutoMACsec.log"  
+      DEBUG: TRUE
 
     Production:
       SERVER_IP: "172.27.169.122"
       SERVER_PORT: "8888"
     ```
+    
+    * For all the path in this configuration file, please use `Absolute file path`, no relative path would be allowed here.    
     * `INCLUDE_PATH` is the field which indicate where the `MACsec_master_dependencies` located
     * `LOCAL_DB_FILE_PATH` is the field which indicate where should database file located
     * `LOG_PATH` is the field which indicate where should log being stored at.
+    * `DEBUG` is the field which indicate LOG debug level, only `TRUE` or `FALSE` are options here.
     * `SERVER_IP` is IP address of the device which `remote_master.py` would running at.
     * `SERVER_PORT` is the port which allow `remote_master.py` to accept/response HTTP requests.
     
 7. Editing `minion_environment.yaml`:
-    
+
     ```
     MACSEC:
-      INCLUDE_PATH: ./MACsec_minion_dependencies"
-      LOG_PATH: "./AutoMACsec.log"  
+      INCLUDE_PATH: "/var/db/scripts/commit/MACsec_minion_dependencies"
+      LOG_PATH: "/var/db/scripts/commit/AutoMACsec.log"  
+      DEBUG: TRUE
     
     Production:
       SERVER_IP: "172.27.169.122"
       SERVER_PORT: "8888"
     ```
+    * For all the path in this configuration file, please use `Absolute file path`, no relative path would be allowed here.
     * `INCLUDE_PATH` is the field which indicate where the `MACsec_minion_dependencies` located
     * `LOG_PATH` is the field which indicate where should log being stored at.
+    * `DEBUG` is the field which indicate LOG debug level, only `TRUE` or `FALSE` are options here.
     * `SERVER_IP` is IP address of the device which `remote_master.py` would running at.
     * `SERVER_PORT` is the port which allow `remote_master.py` to accept/response HTTP requests.
     
