@@ -10,11 +10,8 @@
 # *******************>
 import sys, os
 from yaml import load
-from local_minion import *
-
-def logger(strLog):
-    with open(_INPUT_DATA['MACSEC']['LOG_PATH'], 'a') as target_config:
-        target_config.write(strLog+'\n')
+import logging
+import logging.handlers
 
 #Read Environment config
 THIS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),'../commit/')
@@ -25,12 +22,25 @@ data=f.read()
 _INPUT_DATA=load(data)
 f.close()
 
-logger('Loading required library from ' + _INPUT_DATA['MACSEC']['INCLUDE_PATH'])
-logger_macsec.info('Loading required library from ' + _INPUT_DATA['MACSEC']['INCLUDE_PATH'])
-sys.path.insert(0, _INPUT_DATA['MACSEC']['INCLUDE_PATH'])
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), _INPUT_DATA['MACSEC']['INCLUDE_PATH']))
 
 import requests, json
 import argparse
+
+#logger init
+log_file = os.path.join(os.path.dirname(__file__), _INPUT_DATA['MACSEC']['LOG_PATH'])
+
+log_file_size = 1638400
+log_file_count = 5
+log_level = [logging.INFO, logging.DEBUG][_INPUT_DATA['MACSEC']['DEBUG']]
+
+logger = logging.getLogger('delete_MACsec_interface')
+logger.setLevel(log_level)
+handler = logging.handlers.RotatingFileHandler(log_file, maxBytes=log_file_size, backupCount=log_file_count)
+handler.setFormatter(logging.Formatter('[%(asctime)s] p%(process)s {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s','%m-%d %H:%M:%S'))
+logger.addHandler(handler)
+
+logger.info('Loading required library from ' + _INPUT_DATA['MACSEC']['INCLUDE_PATH'])
 
 
 arguments = {'ChassisID': 'Device chassis ID which delete macsec configuration resides in', 
@@ -41,6 +51,8 @@ SERVER_PORT = _INPUT_DATA['Production']['SERVER_PORT']
 
 
 def rest_request_put(ChassisID, Interface, URL_route):
+    logger.debug('====> rest_request_put()')
+
     headers = {
         "content-type": "application/json"
     }
@@ -58,6 +70,9 @@ def rest_request_put(ChassisID, Interface, URL_route):
                 }
             )
         )
+
+    logger.debug('<==== rest_request_put()')
+
     return response
 
 def main():
@@ -69,16 +84,17 @@ def main():
         parser.add_argument(('-' + key), required=True, help=arguments[key])
     args = parser.parse_args()
 
-    # Extract the value
     print 'delete record with Chassis ID={0}, Interface={1}'.format(args.ChassisID,args.Interface)
 
-    logger('Sending delete request to server, Chassis ID={0}, Interface={1}'.format(args.ChassisID,args.Interface))
-    logger_macsec.info('Sending delete request to server, Chassis ID={0}, Interface={1}'.format(args.ChassisID,args.Interface))
+    logger.info('Sending delete request to server, Chassis ID={0}, Interface={1}'.format(args.ChassisID,args.Interface))
 
-    rest_request_put(args.ChassisID, args.Interface, 'DeleteCAKCKN')
+    try:
+        rest_request_put(args.ChassisID, args.Interface, 'DeleteCAKCKN')
+    except Exception as e:
+        print str(repr(e))
+        logger.error(repr(e))
 
-    logger('Delete successful')
-    logger_macsec.info('Delete successful')
+    logger.info('Delete successful')
 
 
 if __name__ == '__main__':
