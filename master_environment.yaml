@@ -12,6 +12,7 @@ MACSEC:
   INCLUDE_PATH: "./MACsec_master_dependencies"
   LOCAL_DB_FILE_PATH: "./MLS_data.pdl"
   LOG_PATH: "./AutoMACsec.log"  
+  DEBUG: TRUE
 
 
 Production:

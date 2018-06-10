@@ -46,6 +46,7 @@ from jnpr.junos.utils.config import Config
 from datetime import datetime
 import jcs
 
+#logger init
 log_file = os.path.join(os.path.dirname(__file__), _INPUT_DATA['MACSEC']['LOG_PATH'])
 
 log_file_size = 1638400
