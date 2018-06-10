@@ -434,7 +434,6 @@ def main():
                     logger.error("Oops, MASsec function is not working")
                     logger.error("This interface %s may not support MACsec function, please have a check: https://apps.juniper.net/feature-explorer/search.html#q=MACsec")
                 else:
-                    pass
                     logger.info("Great! MASsec is working now")
             else:
                 pass
