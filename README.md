@@ -60,7 +60,6 @@
       SERVER_IP: "172.27.169.153"
       SERVER_PORT: "8888"
     ```
-    * For all the path in this configuration file, please use `Absolute file path`, no relative path would be allowed here.
     * `INCLUDE_PATH` is the field which indicate where the `MACsec_master_dependencies` located
     * `LOCAL_DB_FILE_PATH` is the field which indicate where should database file located
     * `LOG_PATH` is the field which indicate where should log being stored at.
@@ -80,7 +79,6 @@
       SERVER_IP: "172.27.169.122"
       SERVER_PORT: "8888"
     ```
-    * For all the path in this configuration file, please use `Absolute file path`, no relative path would be allowed here.
     * `INCLUDE_PATH` is the field which indicate where the `MACsec_minion_dependencies` located
     * `LOG_PATH` is the field which indicate where should log being stored at.
     * `DEBUG` is the field which indicate LOG debug level, only `TRUE` or `FALSE` are options here.
@@ -103,9 +101,9 @@
     
     ```
     MACSEC:
-      INCLUDE_PATH: "/var/tmp/MACsec_master_dependencies"
-      LOCAL_DB_FILE_PATH: "/var/tmp/MLS_data.pdl"
-      LOG_PATH: "/var/tmp/AutoMACsec.log"  
+      INCLUDE_PATH: "/home/lab/MACsec/MACsec_master_dependencies"
+      LOCAL_DB_FILE_PATH: "/home/lab/MACsec/MLS_data.pdl"
+      LOG_PATH: "/home/lab/MACsec/AutoMACsec.log"  
       DEBUG: TRUE
 
     Production:
@@ -113,7 +111,6 @@
       SERVER_PORT: "8888"
     ```
     
-    * For all the path in this configuration file, please use `Absolute file path`, no relative path would be allowed here.    
     * `INCLUDE_PATH` is the field which indicate where the `MACsec_master_dependencies` located
     * `LOCAL_DB_FILE_PATH` is the field which indicate where should database file located
     * `LOG_PATH` is the field which indicate where should log being stored at.
@@ -133,7 +130,6 @@
       SERVER_IP: "172.27.169.122"
       SERVER_PORT: "8888"
     ```
-    * For all the path in this configuration file, please use `Absolute file path`, no relative path would be allowed here.
     * `INCLUDE_PATH` is the field which indicate where the `MACsec_minion_dependencies` located
     * `LOG_PATH` is the field which indicate where should log being stored at.
     * `DEBUG` is the field which indicate LOG debug level, only `TRUE` or `FALSE` are options here.
