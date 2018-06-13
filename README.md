@@ -35,6 +35,7 @@ As a result, this tool is trying to making operator's life easiser by **automati
         }
     }
     ```
+
 ### Is the default MACsec configuration different from each Junos user?
 * Not at all, MACsec configuration are shared among all users of Junos
 
