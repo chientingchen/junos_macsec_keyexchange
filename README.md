@@ -7,12 +7,36 @@ As a result, this tool is trying to making operator's life easiser by **automati
 ![Alt text](./docs/MACsec_Architecture.png "Architectural Diagram")
 
 # Design Considerations
-* Question: Why this tool is not going to use netconf for deploy pre-shared key pairs?
-* Ans: This tool was design for minimize the user input, including device login credentials, as a result, local script deployment can achieve this goal in this design.
-<br><br/>
-* Question: Why we only have HTTP protocal here instead of HTTPS?
-* Ans: This is being confidered as an enhancement if user is really interested in this domain. It's likely to be a self-signed certificate for each user.
 
+### Why not netconf?
+* This tool was design for minimize the user input, including device login credentials, as a result this tool is using local script to perform configuration deployment, instead of use netconf for deploy pre-shared key pairs remotely.
+
+### Why there's no HTTPS?
+* For current release, this tool doesn't support HTTPS connections for trasmitting CKN/CAK data since it would require user to generate self-signed certificate for each environment. However, if user have a good feedback on this very first version of pre-shared key exchanging tool, HTTPS is definitely one of the most important feature to add on.
+
+# FAQ
+
+### DO I need to configure the same connectivity-association name in neighbored juniper devices?
+* connectivity-association name in Junos is just locally refereneced, it won't affect MACsec connection estabilished if the names are different in neighbored devices.
+  As a result, user can feel free to edit any meaningful name for them on each junos device.
+  <br/> e.g. 
+    
+    ```
+    connectivity-association ANY_MEANINGFUL_NAME {
+        security-mode static-cak;
+        pre-shared-key {
+            ckn 10bcd3519acf9b53a58072fb30ff3cc3c8eaf35e5644c2a91e7e091a0777b8a0;
+            cak "$9$wmYJGP5Q6/tf56A0BEhylKWLNY2aZDievX-dboa/CAu0IcylKWLz3lKvWx7VwYgoGkqfQ36iHp0BIrlLxNbwgik.F694a"; ## SECRET-DATA
+        }
+    }
+    interfaces {
+        ge-0/2/1 {
+            connectivity-association ANY_MEANINGFUL_NAME;
+        }
+    }
+    ```
+### Is the default MACsec configuration different from each Junos user?
+* Not at all, MACsec configuration are shared among all users of Junos
 
 # User Guide
 
