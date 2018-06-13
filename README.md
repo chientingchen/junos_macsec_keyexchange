@@ -1,3 +1,19 @@
+# Problem Statement
+* MACsec is one of the encryption function which can be performed by Juniper networking devices. However, it would require operators to manually copy pre-shared key between devices, which can leads to *manually configuration mistake or long workings hours*.
+As a result, this tool is trying to making operator's life easiser by **automatically generate and deploy the MACsec pre-shared key** in a well controlled network environment.
+
+# Architecture:
+<a name="archi"></a>
+![Alt text](./docs/MACsec_Architecture.png "Architectural Diagram")
+
+# Design Considerations
+* Question: Why this tool is not going to use netconf for deploy pre-shared key pairs?
+* Ans: This tool was design for minimize the user input, including device login credentials, as a result, local script deployment can achieve this goal in this design.
+<br><br/>
+* Question: Why we only have HTTP protocal here instead of HTTPS?
+* Ans: This is being confidered as an enhancement if user is really interested in this domain. It's likely to be a self-signed certificate for each user.
+
+
 # User Guide
 
 ## Requirement: 
@@ -244,16 +260,4 @@ root@Ubuntu:~/python remote_master.py
 <br><br/>
 ![Alt text](./docs/local_minion_commit.png "Local minion console commit screenshot")
 <br><br/>
-
-## FAQ
-* Question: Why this tool is not going to use netconf for deploy pre-shared key pairs?
-* Ans: This tool was design for minimize the user input, including device login credentials, as a result, local script deployment can achieve this goal in this design.
-<br><br/>
-* Question: Why we only have HTTP protocal here instead of HTTPS?
-* Ans: This is being confidered as an enhancement if user is really interested in this domain. It's likely to be a self-signed certificate for each user.
-
-Architecture:
--------------
-<a name="archi"></a>
-![Alt text](./docs/MACsec_Architecture.png "Architectural Diagram")
 
