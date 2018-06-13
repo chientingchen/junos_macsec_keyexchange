@@ -2,7 +2,7 @@
 * MACsec is one of the encryption function which can be performed by Juniper networking devices. However, it would require operators to manually copy pre-shared key between devices, which can leads to *manually configuration mistake or long workings hours*.
 As a result, this tool is trying to making operator's life easiser by **automatically generate and deploy the MACsec pre-shared key** in a well controlled network environment.
 
-# Architecture:
+# Architecture
 <a name="archi"></a>
 ![Alt text](./docs/MACsec_Architecture.png "Architectural Diagram")
 
