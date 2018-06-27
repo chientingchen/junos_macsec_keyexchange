@@ -155,30 +155,35 @@ def DeployConfig(dev, local_int, ckn, cak, conn_name = None):
     logger.debug('<===== Out DeployConfig')
 
 def DeployConfig_jcs(local_int, ckn, cak, conn_name = None):
-
+    
     logger.debug('====> In DeployConfig_jcs')
+    
+    try:
+        if conn_name is None:
+            conn_name = id_generator()
 
-    if conn_name is None:
-        conn_name = id_generator()
-
-    script = "system-check.py"
-    change_xml = """<security>
-                        <macsec>
-                            <connectivity-association>
-                                <name>{0}</name>
-                                <security-mode>static-cak</security-mode>
-                                <pre-shared-key>
-                                    <ckn>{1}</ckn>
-                                    <cak>{2}</cak>
-                                </pre-shared-key>
-                            </connectivity-association>
-                            <interfaces>
-                                <name>{3}</name>
-                                <connectivity-association>{0}</connectivity-association>
-                            </interfaces>
-                        </macsec>
-                    </security>""".format(conn_name, ckn, cak, local_int)
-    jcs.emit_change(change_xml, "change", "xml")
+        script = "system-check.py"
+        change_xml = """<security>
+                            <macsec>
+                                <connectivity-association>
+                                    <name>{0}</name>
+                                    <security-mode>static-cak</security-mode>
+                                    <pre-shared-key>
+                                        <ckn>{1}</ckn>
+                                        <cak>{2}</cak>
+                                    </pre-shared-key>
+                                </connectivity-association>
+                                <interfaces>
+                                    <name>{3}</name>
+                                    <connectivity-association>{0}</connectivity-association>
+                                </interfaces>
+                            </macsec>
+                        </security>""".format(conn_name, ckn, cak, local_int)
+        jcs.emit_change(change_xml, "change", "xml")
+    except Exception as e:
+        jcs.emit_warning('Cannot deploy pre-shared key, skip automatically MACsec deployment')
+        jcs.emit_warning('Please see debug logs for detail.')
+        quit()
     
     logger.debug('<==== Out DeployConfig_jcs')
 
@@ -206,9 +211,10 @@ def rest_request_post(query):
             )
         )
     except Exception as e:
-        jcs.emit_error('Cannot request data from server, please check sever connectivity.')
-        sys.exit(-1)
-        print str(e)
+        jcs.emit_warning('Cannot request data from server, please check sever connectivity with URL: {0}:{1}'.format(SERVER_IP, SERVER_PORT))
+        jcs.emit_warning('Following AutoMACsec configuration would SKIP!')
+        logger.error(str(e))
+        quit()
 
     logger.debug('<==== Out rest_request_post')
 
@@ -379,6 +385,7 @@ def main():
     for query in lstQueryCKNCAK:
         #Get responding ckn & cak
         dict_ServerResponse = json.loads(rest_request_post(query).text)
+
         logger.info('Got response from remote master')
 
         #Check existing ckn & cak match or not, if there's any.
@@ -398,7 +405,7 @@ def main():
                 #ckn cak needs to be updated.
                 logger.info('pre-shared key needs update')
 
-                jcs.emit_warning("Get latest pre-shared key from server, update it.")
+                jcs.emit_warning("Get latest pre-shared key from server, update it to interface {0}".format(query.LocalInt))
                 DeployConfig_jcs(query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'], dictLocalIntConn[query.LocalInt])
 
                 logger.info('finish pre-shared key update')
@@ -412,7 +419,7 @@ def main():
             logger.info('pre-shared key not existed, need to deploy a new one.')
 
             if dict_ServerResponse['ckn'] != None and dict_ServerResponse['cak'] != None:
-                jcs.emit_warning("Automatically generate pre-shared key and deploy it.")
+                jcs.emit_warning("Automatically generate pre-shared key and deploy it on interface {0}".format(query.LocalInt))
                 DeployConfig_jcs(query.LocalInt, dict_ServerResponse['ckn'], dict_ServerResponse['cak'], dictLocalIntConn[query.LocalInt])
                 logger.info('pre-shared key deployed.')
             else:
@@ -427,6 +434,7 @@ def main():
                 jcs.emit_error("There's not matched pre-shared key in database, please delete both side's macsec configuration and try again.")
 
         # Check if MKA works
+        '''
         mka_sessions = dev.rpc.get_mka_session_information()
         for ifd in mka_sessions.getiterator("mka-session-information"):
             if ifd.find("interface-name") == query.LocalInt:
@@ -437,6 +445,7 @@ def main():
                     logger.info("Great! MASsec is working now")
             else:
                 pass
+        '''
 
 if __name__ == "__main__":
     main()
