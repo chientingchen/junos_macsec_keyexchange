@@ -1,11 +1,9 @@
----
-# master:
-#   - ip: 172.27.169.122
-#     usr: root
-#     pwd: lab123
-#     port: 8888
+master:
+   - host_IP: 172.27.169.122
+     usr: root
+     pwd: lab123
+     port: 8888
 minion:
-  - ip: 172.27.170.123
+  - host_IP: 172.27.170.123
     usr: root
     pwd: lab123
-
