@@ -289,4 +289,4 @@ if __name__ == '__main__':
     logger.info('Get database instance')
     db = SimpleDBFactory().CreatePydblite()
     logger.info('Start up flask web server')
-    app.run(host=_INPUT_DATA['Production']['SERVER_IP'], port=_INPUT_DATA['Production']['SERVER_PORT'], debug=False)
+    app.run(host='0.0.0.0', port=_INPUT_DATA['Production']['SERVER_PORT'], debug=False)
