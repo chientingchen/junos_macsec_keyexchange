@@ -26,7 +26,7 @@ def configure_env(file, SERVER_IP, SERVER_PORT):
         config = yaml.load(f)
         f.close()
         if SERVER_IP == 'localhost':
-            config['Production']['SERVER_IP'] = '172.27.169.122'
+            config['Production']['SERVER_IP'] = '127.0.0.1'
         else:
             config['Production']['SERVER_IP'] = SERVER_IP
         config['Production']['SERVER_PORT'] = SERVER_PORT
