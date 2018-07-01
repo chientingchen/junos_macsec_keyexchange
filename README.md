@@ -80,11 +80,54 @@ As a result, this tool is trying to making operator's life easiser by **automati
 
 ## Installation:
 
+### Installer:
+* `Installer.py` provided automatically deployment of **On-box mode**, it's recommend for user who target on use it with On-box mode can leverage this installer to deploy MACsec exchanger.
+
+0. Download all files within this repository to `/var/db/scripts/op` on the juniper device which is going to acting as server.
+1. Edit `devices.yaml`, fill in the master and minion information as below:
+    
+    ```
+    master:
+      - host_IP: 172.27.169.122
+        usr: root
+        pwd: lab123
+        port: 8888
+        
+    minion:
+      - host_IP: 172.27.170.123
+        usr: root
+        pwd: lab123
+        
+      - host_IP: 172.27.170.124
+        usr: root
+        pwd: lab123
+    ```
+    * `host_IP` is the field which indicate device IP address
+    * `usr` is the field which indicate what user account can be used to deploy this tool
+    * `pwd` is the field which indicate the password of deployment user account
+    * `port` is the field which indicate which port would be used at the juniper device which is going to acting as server.
+    
+2. Enter the configuration mode of master junos device, set up configuration as below:
+    
+    ```
+    junos@MX480# set system scripts language python
+    junos@MX480# set system scripts op file installer.py
+    junos@MX480# commit
+    ```
+    
+3. Enter the operation mode of master junos device, execute installer.py
+
+    ```
+    junos@MX480> op installer.py
+    ```
+4. You shall see the following output, and this tool is already up/running at user's environment.
+
+
 <a name="onbox-installation"></a>    
 ### On-box mode:
 
-0. Download folder `MACsec_master_dependencies` to `/var/db/scripts/op` on thr juniper device which is going to acting as server.
-1. Download `remote_master.py`, `master_environment.yaml` to `/var/db/scripts/op` on the juniper device which is going to acting as server.
+0. Download folder `MACsec_master_dependencies` to `/var/db/scripts/jet` on the juniper device which is going to acting as server.
+1. Download `remote_master.py`, `master_environment.yaml` to `/var/db/scripts/jet` on the juniper device which is going to acting as server.
 2. Download folder `MACsec_minion_dependencies` to `/var/db/scripts/commit` on all juniper device.
 3. Download `local_minion.py` and `minion_environment.yaml` to `/var/db/scripts/commit` on all juniper device.
 4. Download `delete_MACsec_interface.py` to `/var/db/scripts/op` on all juniper devices
@@ -98,14 +141,12 @@ As a result, this tool is trying to making operator's life easiser by **automati
       DEBUG: TRUE
 
     Production:
-      SERVER_IP: "172.27.169.153"
       SERVER_PORT: "8888"
     ```
     * `INCLUDE_PATH` is the field which indicate where the `MACsec_master_dependencies` located
     * `LOCAL_DB_FILE_PATH` is the field which indicate where should database file located
     * `LOG_PATH` is the field which indicate where should log being stored at.
     * `DEBUG` is the field which indicate LOG debug level, only `TRUE` or `FALSE` are options here.
-    * `SERVER_IP` is IP address of the device which `remote_master.py` would running at.
     * `SERVER_PORT` is the port which allow `remote_master.py` to accept/response HTTP requests.
     
 6. Editing `minion_environment.yaml`:
@@ -148,7 +189,6 @@ As a result, this tool is trying to making operator's life easiser by **automati
       DEBUG: TRUE
 
     Production:
-      SERVER_IP: "172.27.169.122"
       SERVER_PORT: "8888"
     ```
     
