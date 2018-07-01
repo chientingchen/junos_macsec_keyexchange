@@ -59,22 +59,22 @@ As a result, this tool is trying to making operator's life easiser by **automati
 
 ## Introduction:
 
-* As [architecture diagram](#archi) shown, this tool would have a script(`remote_master.py`) running as a server and the other script(`local_minion.py`) running as a client.
+* As **[architecture diagram](#archi)** shown, this tool would have a script(`remote_master.py`) running as a server and the other script(`local_minion.py`) running as a client.
 
-* Module `remote_master.py`:
+* **Module `remote_master.py`:**
     * It's allow to running on linux server or juniper device.
     * it's designed as central storage of all MACsec pre-shared keys.
 
-* Module `local_minion.py`:
+* **Module `local_minion.py`:**
     * It's only allow to execute on top of juniper device
     * it's designed for deploy MACsec keys to local device. For any device which require automatic MACsec key exchange would have to equipped with this script.
 
-* Execution mode:
-    * [On-box mode](#onbox-installation):
+* **Execution mode:**
+    * **[On-box mode](#onbox-installation):**
         * In this mode, `remote_server.py` would running on top of juniper device, in other words, one of the juniper device in user's environemnt would acting as a server 
         * In the same time, `local_minion.py` would also executing on all the juniper devices(including the same one acting as a server.) in user's environment.
 
-    * [Off-box mode](#offbox-installation):
+    * **[Off-box mode](#offbox-installation):**
         * In this mode, `remote_server.py` would running on top of any linux server in user's environment, as a central storage.
         * In the same time, `local_minion.py` would execute on all the juniper devices in user's environment.
 
@@ -224,16 +224,32 @@ As a result, this tool is trying to making operator's life easiser by **automati
 ### On-box mode:
 
 #### Remote master:
-1. ssh to junos cli on juniper device which `remote_master` located.
-2. Executing op script `remote_master.py`
-```
-lab@MX480X1b> op remote_master.py
-```
-3. The following message should show up, please leave the session here alive.
-<br><br/>
-![Alt text](./docs/remote_master_console.png "Remote master console screenshot")
-<br><br/>
+1. If base config `BaseConfigs/OnBox/Onbox_remote_master_Basic.conf` is deployed successfully, `remote_master.py` would be up and running immediately when configuration is deployed. 
+2. Please check `remote_master.py` status by following junos command, if there's nothing shown at the output, please refer to debug log for troubleshooting.
 
+    ```
+    root@MX480-X1> show extension-service status remote_master.py
+    Extension service application details:
+    Name : remote_master
+    Process-id: 75157
+    Stack-Segment-Size: 16777216B
+    Data-Segment-Size: 134217728B
+    ```
+    
+3. For troubleshooting, user can manually start `remote_master.py` by following junos command.
+
+    ```
+    root@MX480-X1> request extension-service start remote_master.py
+    Extension-service application 'remote_master.py' started with PID: 75157
+     * Serving Flask app "remote_master" (lazy loading)
+     * Environment: production
+       WARNING: Do not use the development server in a production environment.
+       Use a production WSGI server instead.
+     * Debug mode: off
+     * Running on http://0.0.0.0:8888/ (Press CTRL+C to quit)
+    ```
+    * **Note that manually starting `remote_master.py` is only recommend for troubleshooting.**
+    
 #### Local minion:
 1. ssh to junos cli at each juniper device which `local_minion.py` located.
 2. Edit macsec configuration as usual, but user doesn't have to configure pre-shared key.
