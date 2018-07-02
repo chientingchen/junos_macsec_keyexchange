@@ -18,6 +18,17 @@ _OP_FOLDER_PATH = '/var/db/scripts/op/'
 
 _DEVICE_YAML_PATH = '/var/db/scripts/op/devices.yaml'
 
+def get_local_mgmt_IP(self):
+    
+    dev = Device()
+    dev.open()
+
+    data = self.dev.rpc.get_lldp_local_info()        
+    Local_mgmt_IP = data.find('lldp-local-management-address-address').text
+
+    dev.close()
+
+    return Local_mgmt_IP
 
 def configure_env(file, SERVER_IP, SERVER_PORT):
     print ("Configuring "+file)
@@ -175,16 +186,15 @@ def load_merge_config(Deivces,config_file):
 def init_master(devices):
     print('init master...')
     if 'master' in devices and devices['master']:
-
         if type(devices['master']) == list:
-            if 'host' not in devices['master'][0]:
-                devices['master'][0]['host_IP']='localhost'
+            if 'host_IP' not in devices['master'][0]:
+                devices['master'][0]['host_IP'] = info.get_local_mgmt_IP()
             if 'usr' not in devices['master'][0]:
-                devices['master'][0]['usr']=None
+                devices['master'][0]['usr'] = None
             if 'pwd' not in devices['master'][0]:
-                devices['master'][0]['pwd']=None
+                devices['master'][0]['pwd'] = None
             if 'port' not in devices['master'][0]:
-                devices['master'][0]['port']=8888
+                devices['master'][0]['port'] = 8888
             return devices
         else:
             print('master should be a list')
@@ -193,10 +203,10 @@ def init_master(devices):
     else:
         devices['master']=[]
         devices['master'].append({})
-        devices['master'][0]['host_IP']='localhost'
-        devices['master'][0]['usr']=None
-        devices['master'][0]['pwd']=None
-        devices['master'][0]['port']=8888
+        devices['master'][0]['host_IP'] = get_local_mgmt_IP()
+        devices['master'][0]['usr'] = None
+        devices['master'][0]['pwd'] = None
+        devices['master'][0]['port'] = 8888
         return devices
 
 def main():
@@ -211,10 +221,10 @@ def main():
         print('start deploying...')
         configure_env(os.path.join(_OP_FOLDER_PATH,'master_environment.yaml'),devices['master'][0]['host_IP'],devices['master'][0]['port'])
         configure_env(os.path.join(_OP_FOLDER_PATH,'minion_environment.yaml'),devices['master'][0]['host_IP'],devices['master'][0]['port'])
-        download_files(devices['master'],devices['minion'])
+        #download_files(devices['master'],devices['minion'])
         load_merge_config(devices['master'],conf_file_master)
         load_merge_config(devices['minion'],conf_file_minion)
-    return
+    return 0
 
 if __name__ == "__main__":
     main()
